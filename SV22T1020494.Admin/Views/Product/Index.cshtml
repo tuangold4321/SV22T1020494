@@ -1,0 +1,83 @@
+﻿@model SV22T1020494.Models.Catalog.ProductSearchInput
+@{
+    ViewBag.Title = "Quản lý Mặt hàng";
+}
+@{
+    // Load select lists from helper and adjust the default text to "-- Tất cả --"
+    var categories = await SelectListHelper.Categories();
+    if (categories != null && categories.Count > 0) categories[0].Text = "-- Tất cả --";
+    var suppliers = await SelectListHelper.Suppliers();
+    if (suppliers != null && suppliers.Count > 0) suppliers[0].Text = "-- Tất cả --";
+}
+@section PageToolBar {
+    <a href="~/Product/Create" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-1"></i>
+        Bổ sung
+    </a>
+}
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form id="formSearch"
+              method="get"
+              action="~/Product/Search"
+              data-target="searchResult"
+              onsubmit="paginationSearch(event, this, 1)">
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <label class="form-label">Loại hàng</label>
+                    <select name="category" class="form-select">
+                        @foreach(var item in categories)
+                        {
+                            var val = item.Value ?? string.Empty;
+                            var isSelected = Model != null ? Model.CategoryID.ToString() == val : val == "0";
+                            <option value="@val" selected="@(isSelected ? "selected" : null)">@item.Text</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">Nhà cung cấp</label>
+                    <select name="supplier" class="form-select">
+                        @foreach(var item in suppliers)
+                        {
+                            var val = item.Value ?? string.Empty;
+                            var isSelected = Model != null ? Model.SupplierID.ToString() == val : val == "0";
+                            <option value="@val" selected="@(isSelected ? "selected" : null)">@item.Text</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Khoảng giá</label>
+                    <div class="input-group">
+                        <input type="hidden" asp-for="PageSize" />
+                        <input type="text" name="minPrice" class="form-control money-input" placeholder="Từ" />
+                        <span class="input-group-text">-</span>
+                        <input type="text" name="maxPrice" class="form-control money-input" placeholder="Đến" />
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Tên mặt hàng</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" asp-for="SearchValue" placeholder="Tên mặt hàng..." autofocus />
+                        <button class="btn btn-info d-flex align-items-center">
+                            <i class="bi bi-search me-1"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="searchResult"></div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            paginationSearch(null, document.getElementById("formSearch"), 1);
+        });
+    </script>
+}

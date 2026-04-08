@@ -1,0 +1,194 @@
+﻿@model dynamic
+@{
+    Layout = null;
+
+    // Treat the incoming model as an object and use reflection to read members safely
+    object? modelObj = Model as object;
+
+    var controller = (ViewContext.RouteData.Values["controller"] ?? string.Empty)?.ToString() ?? string.Empty;
+    string entityName = "bản ghi";
+    switch (controller)
+    {
+        case "Category": entityName = "loại hàng"; break;
+        case "Product": entityName = "mặt hàng"; break;
+        case "Customer": entityName = "khách hàng"; break;
+        case "Supplier": entityName = "nhà cung cấp"; break;
+        case "Shipper": entityName = "người giao hàng"; break;
+        case "Employee": entityName = "nhân viên"; break;
+    }
+
+    // Safely read RowCount via reflection (avoids dynamic nullability warnings)
+    int? rowCount = null;
+    if (modelObj != null)
+    {
+        try
+        {
+            var rowProp = modelObj.GetType().GetProperty("RowCount");
+            if (rowProp != null)
+            {
+                var raw = rowProp.GetValue(modelObj);
+                if (raw != null && int.TryParse(raw.ToString(), out var v)) rowCount = v;
+            }
+        }
+        catch { }
+    }
+}
+
+<div class="mb-2 text-muted">
+    @if (rowCount != null)
+    {
+        <text>Danh sách này có <strong>@rowCount</strong> @entityName</text>
+    }
+    else
+    {
+        <text>Không có dữ liệu</text>
+    }
+</div>
+
+@{
+    // Safely obtain DataItems as IEnumerable via reflection
+    System.Collections.IEnumerable? dataItems = null;
+    if (modelObj != null)
+    {
+        try
+        {
+            var diProp = modelObj.GetType().GetProperty("DataItems");
+            if (diProp != null)
+            {
+                var raw = diProp.GetValue(modelObj);
+                if (raw is System.Collections.IEnumerable en) dataItems = en;
+            }
+        }
+        catch { }
+    }
+}
+
+@if (dataItems == null)
+{
+    <div class="alert alert-info">Không có dữ liệu.</div>
+}
+else
+{
+    var list = new List<object>();
+    foreach (var it in dataItems)
+    {
+        list.Add(it ?? new object());
+    }
+
+    if (list.Count == 0)
+    {
+        <div class="alert alert-info">Không có dữ liệu.</div>
+    }
+    else
+    {
+        // Determine columns via reflection from the first item
+        var first = list[0];
+        var props = first?.GetType().GetProperties().Where(p => p.CanRead).ToArray() ?? new System.Reflection.PropertyInfo[0];
+        var displayProps = props.Length > 4 ? props.Take(4).ToArray() : props;
+
+        <div class="card">
+            <div class="card-body p-1">
+                <table class="table table-bordered table-hover mb-0">
+                    <thead class="table-secondary">
+                        <tr>
+                            <th>#</th>
+                            @foreach (var p in displayProps)
+                            {
+                                <th>@p.Name</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < list.Count; i++)
+                        {
+                            var item = list[i];
+                            <tr>
+                                <td>@(i + 1)</td>
+                                @foreach (var p in displayProps)
+                                {
+                                    object? val = null;
+                                    try { val = p.GetValue(item); } catch { val = null; }
+                                    <td>@(val ?? string.Empty)</td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card-footer">
+                <ul class="pagination justify-content-center">
+                    @{ 
+                        var pages = new List<(int Page, bool IsCurrent, bool IsEllipsis)>();
+                        if (modelObj != null)
+                        {
+                            try
+                            {
+                                var mi = modelObj.GetType().GetMethod("GetDisplayPages");
+                                if (mi != null)
+                                {
+                                    var raw = mi.Invoke(modelObj, new object[] { 5 });
+                                    if (raw is System.Collections.IEnumerable en)
+                                    {
+                                        foreach (var it in en)
+                                        {
+                                            try
+                                            {
+                                                var t = it.GetType();
+                                                var pageProp = t.GetProperty("Page");
+                                                var isCurrentProp = t.GetProperty("IsCurrent");
+                                                var isEllipsisProp = t.GetProperty("IsEllipsis");
+
+                                                int pageVal = 0;
+                                                bool isCurrentVal = false;
+                                                bool isEllipsisVal = false;
+
+                                                if (pageProp != null)
+                                                {
+                                                    var rawPage = pageProp.GetValue(it);
+                                                    if (rawPage != null) int.TryParse(rawPage.ToString(), out pageVal);
+                                                }
+                                                if (isCurrentProp != null)
+                                                {
+                                                    var rawCur = isCurrentProp.GetValue(it);
+                                                    if (rawCur != null) bool.TryParse(rawCur.ToString(), out isCurrentVal);
+                                                }
+                                                if (isEllipsisProp != null)
+                                                {
+                                                    var rawEll = isEllipsisProp.GetValue(it);
+                                                    if (rawEll != null) bool.TryParse(rawEll.ToString(), out isEllipsisVal);
+                                                }
+
+                                                pages.Add((pageVal, isCurrentVal, isEllipsisVal));
+                                            }
+                                            catch { }
+                                        }
+                                    }
+                                }
+                            }
+                            catch { }
+                        }
+                    }
+
+                    @foreach (var p in pages)
+                    {
+                        if (p.IsCurrent)
+                        {
+                            <li class="page-item active"><a class="page-link">@p.Page</a></li>
+                        }
+                        else if (p.IsEllipsis)
+                        {
+                            <li class="page-item"><a class="page-link">...</a></li>
+                        }
+                        else
+                        {
+                            <li class="page-item ">
+                                <a class="page-link" href="javascript:;" onclick="paginationSearch(event, document.getElementById('formSearch'), @p.Page)">@p.Page</a>
+                            </li>
+                        }
+                    }
+                </ul>
+            </div>
+        </div>
+    }
+}

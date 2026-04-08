@@ -1,0 +1,163 @@
+﻿@model SV22T1020494.Shop.Models.CartViewModel
+@{
+    ViewData["Title"] = "Xác nhận đơn hàng";
+}
+
+@await Html.PartialAsync("_Header")
+
+<div style="max-width:1200px;margin:24px auto;padding:16px;display:grid;grid-template-columns:1fr 360px;gap:24px;">
+    <div style="background:#fff;padding:16px;border:1px solid #e0e0e0;border-radius:6px;">
+        <h3 style="margin-top:0;color:#2c3e50;">Địa chỉ giao hàng</h3>
+        <p style="color:#7f8c8d;font-size:13px;margin-bottom:8px;">Nhập địa chỉ giao hàng</p>
+        <textarea id="deliveryAddress" placeholder="Nhập địa chỉ giao hàng" style="width:100%;min-height:80px;padding:10px;border:1px solid #e6ecf0;border-radius:4px;"></textarea>
+        <div id="addressError" style="color:red;margin-top:8px;display:none;font-size:13px;"></div>
+
+        <h3 style="margin-top:16px;color:#2c3e50;">Sản phẩm</h3>
+        <div id="checkoutItems" style="margin-top:8px;"></div>
+    </div>
+
+    <aside style="background:#fff;padding:18px;border:1px solid #e6e6e6;border-radius:6px;align-self:start;display:flex;flex-direction:column;justify-content:space-between;">
+        <h3>Chi tiết đơn hàng</h3>
+        <div style="display:flex;justify-content:space-between;margin-top:12px;font-weight:700;font-size:18px;"><div>Tổng cộng</div><div id="checkoutTotal">0 đ</div></div>
+        <div style="margin-top:16px;display:flex;gap:12px;">
+            <button id="backBtn" class="btn action-indicator" style="flex:1;padding:12px;border:1px solid #e0e0e0;border-radius:6px;background:white;">Quay lại</button>
+            <button id="confirmBtn" class="btn primary action-indicator" style="flex:1;padding:12px;">Xác nhận</button>
+        </div>
+    </aside>
+</div>
+
+@await Html.PartialAsync("_Footer")
+
+<script>
+    // Render items from localStorage cart
+    async function renderCheckout(){
+        const container = document.getElementById('checkoutItems');
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        if (!cart.length){
+            container.innerHTML = '<div class="empty">Giỏ hàng trống</div>';
+            document.getElementById('checkoutTotal').textContent = '0 đ';
+            return;
+        }
+
+        const getItemId = (c) => c.id ?? c.ProductID ?? c.ID ?? c.productId ?? c.productID ?? null;
+        const ids = cart.map(c => getItemId(c)).filter(x => x != null).join(',');
+
+        let products = [];
+        try{
+            const res = await fetch('/Products/GetProductsByIds?ids=' + encodeURIComponent(ids));
+            if (res.ok) products = await res.json();
+        }catch(e){ console.error(e); }
+
+        const productMap = {};
+        if (products && products.length){
+            products.forEach(p => { const pId = String(p.ProductID ?? p.productId ?? p.id); productMap[pId] = p; });
+        }
+
+        let html = '';
+        let subtotal = 0;
+        cart.forEach(item => {
+            const itemId = String(item.id ?? item.ID ?? item.productId ?? item.ProductID ?? item.productID);
+            const prod = productMap[itemId];
+            const qty = Number(item.qty || 1);
+            const name = prod ? (prod.ProductName ?? prod.productName) : (item.name || 'Sản phẩm');
+            const priceVal = prod ? Number(prod.Price ?? prod.price ?? 0) : Number(item.price || 0);
+            subtotal += priceVal * qty;
+            // product photo: prefer prod.Photo then item.photo
+            const photo = prod ? (prod.Photo ?? prod.photo) : (item.photo || null);
+            let imgHtml = '';
+            if (photo) {
+                imgHtml = `<img src="/images/products/${photo}" alt="${name}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid #eee;" />`;
+            } else {
+                imgHtml = `<svg style="width:56px;height:56px;" viewBox="0 0 100 100" fill="none"><rect x="10" y="18" width="80" height="64" fill="#f2f4f6" rx="6" /><circle cx="34" cy="44" r="6" fill="#ddd" /><path d="M 30 66 L 38 48 L 50 56 L 62 38 L 74 66" stroke="#ddd" stroke-width="2" fill="none" /></svg>`;
+            }
+
+            html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f6f6f6;">
+                        <div style="display:flex;gap:12px;align-items:center;">
+                            <div style="width:56px;height:56px;border-radius:6px;display:flex;align-items:center;justify-content:center;">${imgHtml}</div>
+                            <div>
+                                <div style="font-weight:600;">${name}</div>
+                                <div style="color:#7f8c8d;font-size:13px;">Số lượng: ${qty}</div>
+                            </div>
+                        </div>
+                        <div style="font-weight:700;color:#2c3e50;">đ${(priceVal*qty).toLocaleString()}</div>
+                    </div>`;
+        });
+
+        container.innerHTML = html;
+        document.getElementById('checkoutTotal').textContent = '₫' + subtotal.toLocaleString();
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+        renderCheckout();
+
+        // Show address validation if page was reloaded with missingAddress=1
+        const params = new URLSearchParams(window.location.search || '');
+        if (params.get('missingAddress') === '1'){
+            const err = document.getElementById('addressError');
+            if (err){ err.textContent = 'Bạn chưa nhập địa chỉ giao hàng!'; err.style.display = 'block'; }
+            const ta = document.getElementById('deliveryAddress'); if (ta) ta.focus();
+        }
+
+        document.getElementById('backBtn').addEventListener('click', function(){
+            window.location.href = '/Cart/Index';
+        });
+
+        document.getElementById('confirmBtn').addEventListener('click', async function(){
+            const cart = JSON.parse(localStorage.getItem('cart')) || [];
+            if (!cart.length){ alert('Giỏ hàng trống'); return; }
+
+            const address = (document.getElementById('deliveryAddress').value || '').trim();
+            if (!address){
+                // Force reload so the server/client will display the address error placeholder
+                window.location.href = window.location.pathname + '?missingAddress=1';
+                return;
+            }
+
+            const getItemId = (c) => c.id ?? c.ProductID ?? c.ID ?? c.productId ?? c.productID ?? null;
+            const ids = cart.map(c => getItemId(c)).filter(x => x != null).join(',');
+
+            let products = [];
+            try{ const res = await fetch('/Products/GetProductsByIds?ids=' + encodeURIComponent(ids)); if (res.ok) products = await res.json(); }catch(e){ console.error(e); }
+
+            const productMap = {};
+            (products||[]).forEach(p => { const pId = String(p.ProductID ?? p.productId ?? p.id); productMap[pId] = p; });
+
+            const items = [];
+            cart.forEach(item => {
+                const itemId = String(item.id ?? item.ID ?? item.productId ?? item.ProductID ?? item.productID);
+                const product = productMap[itemId];
+                if (product) {
+                    items.push({ ProductID: product.ProductID ?? product.productId, Quantity: Number(item.qty || 1), Price: Number(product.Price ?? product.price ?? 0) });
+                } else if (item && (item.id || item.ID || item.productId || item.ProductID)) {
+                    // fallback: use client-side snapshot (name/price) if server product lookup failed
+                    const pid = Number(item.id ?? item.ID ?? item.productId ?? item.ProductID ?? item.productID);
+                    const pPrice = Number(item.price ?? item.Price ?? 0);
+                    if (pid && pPrice >= 0) {
+                        items.push({ ProductID: pid, Quantity: Number(item.qty || 1), Price: pPrice });
+                    }
+                }
+            });
+
+            if (!items.length){ alert('Không có sản phẩm hợp lệ trong giỏ'); return; }
+
+            try{
+                const response = await fetch('/Cart/CreateOrder', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ Province: '', Address: address, Items: items })
+                });
+                const result = await response.json();
+                if (result.success){
+                    // clear cart and redirect to index showing payment notice
+                    localStorage.removeItem('cart');
+                    localStorage.setItem('paymentNotice','1');
+                    window.updateBadges && window.updateBadges();
+                    window.location.href = '/Cart/Index';
+                } else if (result.redirectUrl){
+                    window.location.href = result.redirectUrl;
+                } else {
+                    alert('Lỗi: ' + (result.message || 'Không thể tạo đơn hàng'));
+                }
+            }catch(err){ console.error(err); alert('Có lỗi xảy ra khi đặt hàng'); }
+        });
+    });
+</script>

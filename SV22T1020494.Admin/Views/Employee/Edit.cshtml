@@ -1,0 +1,97 @@
+﻿@model SV22T1020494.Models.EmployeeViewModel
+@{
+}
+@section PageToolBar {
+    <button type="submit" form="formEdit" class="btn btn-primary">
+        <i class="bi bi-save"></i>
+        Lưu dữ liệu
+    </button>
+    <a href="~/Employee" class="btn btn-secondary ms-1">
+        <i class="bi bi-arrow-left"></i>
+        Quay lại
+    </a>
+}
+
+<div class="row justify-content-center">
+    <div class="col-12">
+        <div class="card card-primary card-outline">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-person-badge me-2"></i>
+                    Thông tin nhân viên
+                </h5>
+            </div>
+
+            <div class="card-body">
+                <form id="formEdit" method="post" enctype="multipart/form-data" action="~/Employee/Save">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="EmployeeID" />
+
+                    <div class="row mb-3">
+                        <label class="col-sm-3 col-form-label">Họ và tên</label>
+                        <div class="col-sm-5">
+                            <input asp-for="LastName" type="text" class="form-control" placeholder="Họ" autofocus />
+                        </div>
+                        <div class="col-sm-4">
+                            <input asp-for="FirstName" type="text" class="form-control" placeholder="Tên" />
+                        </div>
+                        <div class="offset-sm-3 col-sm-9 mt-1">
+                            <span asp-validation-for="LastName" class="text-danger"></span>
+                            <div class="form-text text-muted">Vui lòng nhập họ và tên nhân viên</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-sm-3 col-form-label">Ngày sinh</label>
+                        <div class="col-sm-9">
+                            <input asp-for="BirthDate" class="form-control date-iso" placeholder="yyyy-mm-dd" />
+                            <span asp-validation-for="BirthDate" class="text-danger"></span>
+                            <div class="form-text text-muted">Chọn ngày sinh của nhân viên</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-sm-3 col-form-label">Địa chỉ</label>
+                        <div class="col-sm-9">
+                            <textarea asp-for="Address" class="form-control" rows="3" placeholder="Nhập địa chỉ"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-sm-3 col-form-label">Điện thoại</label>
+                        <div class="col-sm-2">
+                            <input asp-for="Phone" type="tel" class="form-control" placeholder="Nhập số điện thoại" />
+                        </div>
+                        <label class="col-sm-1 col-form-label text-end">Email</label>
+                        <div class="col-sm-6">
+                            <input asp-for="Email" type="email" class="form-control" placeholder="Nhập email" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                            <div class="form-text text-muted">Vui lòng cho biết email của nhân viên</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-sm-3 col-form-label">Ảnh</label>
+                        <div class="col-sm-9">
+                            <input type="file" class="form-control" accept="image/*" data-img-preview="imgPreview" onchange="previewImage(this)" />
+                            <div class="mt-2">
+                                <img id="imgPreview" src="~/images/employees/nophoto.png" class="img-thumbnail" style="max-height: 150px;" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-sm-3 col-form-label">Trạng thái</label>
+                        <div class="col-sm-9">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" asp-for="IsActive" type="checkbox" id="IsWorking" />
+                                <label class="form-check-label" for="IsWorking">Đang làm việc</label>
+                            </div>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

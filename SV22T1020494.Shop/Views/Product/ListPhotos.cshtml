@@ -1,0 +1,117 @@
+@model List<SV22T1020494.Models.Catalog.ProductPhoto>
+@{
+    var main = ViewBag.MainPhoto as string;
+    var photos = Model ?? new List<SV22T1020494.Models.Catalog.ProductPhoto>();
+    if (string.IsNullOrWhiteSpace(main))
+    {
+        main = photos.FirstOrDefault()?.Photo;
+    }
+
+    // Build thumbnail list: first item = main photo, then remaining photos from gallery (avoid duplicate)
+    var thumbsList = new List<string>();
+    if (!string.IsNullOrWhiteSpace(main)) thumbsList.Add(main);
+    foreach (var p in photos)
+    {
+        if (string.IsNullOrWhiteSpace(p?.Photo)) continue;
+        if (string.Equals(p.Photo, main, System.StringComparison.OrdinalIgnoreCase)) continue;
+        thumbsList.Add(p.Photo);
+    }
+}
+<style>
+    .photo-viewer { display:flex; flex-direction:column; align-items:flex-start; gap:12px; }
+    /* main photo area: reduce internal whitespace so image appears larger */
+    .photo-viewer .main { width:420px; height:420px; background:#fafafa; display:flex; align-items:center; justify-content:center; border-radius:6px; border:1px solid #eee; overflow:hidden; padding:0; }
+    /* make main image fill the box like home cards */
+    .photo-viewer .main img { width:100%; height:100%; object-fit:cover; display:block; }
+
+    /* thumbnails */
+    .photo-viewer .thumbs { display:flex; gap:12px; margin-top:6px; overflow-x:auto; padding:6px 4px; -webkit-overflow-scrolling:touch; }
+    .photo-viewer .thumbs > div { display:flex; }
+    .photo-viewer .thumb { width:64px; height:64px; border:2px solid transparent; border-radius:4px; display:flex; align-items:center; justify-content:center; overflow:hidden; cursor:pointer; flex:0 0 auto; }
+    .photo-viewer .thumb img { width:100%; height:100%; object-fit:cover; }
+    .photo-viewer .thumb.selected { border-color:#ff2d6f; box-shadow:0 0 0 3px rgba(255,45,111,0.06); }
+
+    /* nav buttons for large thumbnail sets */
+    .thumb-nav { background:#fff; border:1px solid #eee; border-radius:6px; width:36px; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:20px; line-height:1; }
+    .thumb-nav:active { transform:translateY(1px); }
+</style>
+
+<div class="photo-viewer">
+    <div class="main" id="photoMain">
+        @if (!string.IsNullOrWhiteSpace(main))
+        {
+            <img src="@Url.Content("~/images/products/" + main)" alt="Photo" />
+        }
+        else
+        {
+            <svg style="width:48%; height:48%;" viewBox="0 0 100 100" fill="none">
+                <rect x="20" y="20" width="60" height="60" fill="#ddd" rx="4" />
+            </svg>
+        }
+    </div>
+
+    @if (thumbsList != null && thumbsList.Count > 0)
+    {
+        <div style="display:flex; align-items:center; gap:8px; width:100%;">
+            @if (thumbsList.Count >= 5)
+            {
+                <button type="button" id="thumbPrev" class="thumb-nav">‹</button>
+            }
+            <div class="thumbs" id="photoThumbs" style="flex:1; overflow:hidden;">
+                <div style="display:flex; gap:12px; transition:transform .2s; align-items:center;">
+                @for (int i = 0; i < thumbsList.Count; i++)
+                {
+                    var src = Url.Content("~/images/products/" + thumbsList[i]);
+                    <div class="thumb@(i==0? " selected":"")" data-src="@src">
+                        <img src="@src" alt="Thumb" />
+                    </div>
+                }
+                </div>
+            </div>
+            @if (thumbsList.Count >= 5)
+            {
+                <button type="button" id="thumbNext" class="thumb-nav">›</button>
+            }
+        </div>
+    }
+</div>
+
+<script>
+    (function(){
+        var main = document.getElementById('photoMain');
+        var thumbs = document.getElementById('photoThumbs');
+        if (!thumbs) return;
+
+        var inner = thumbs.querySelector('div');
+        var thumbButtons = thumbs.querySelectorAll('.thumb');
+        function setMain(src, clickedThumb){
+            if (!src) return;
+            var img = main.querySelector('img');
+            if (!img) {
+                img = document.createElement('img');
+                main.innerHTML = '';
+                main.appendChild(img);
+            }
+            img.src = src;
+            thumbButtons.forEach(function(s){ s.classList.remove('selected'); });
+            if (clickedThumb) clickedThumb.classList.add('selected');
+        }
+
+        thumbButtons.forEach(function(t){
+            t.addEventListener('click', function(){
+                var src = this.getAttribute('data-src');
+                setMain(src, this);
+            });
+        });
+
+        // show nav when enough thumbs
+        var prev = document.getElementById('thumbPrev');
+        var next = document.getElementById('thumbNext');
+        if (prev && next) {
+            // scroll by thumb width
+            var step = 80; // pixels to scroll
+            prev.addEventListener('click', function(){ thumbs.scrollBy({ left: -step, behavior: 'smooth' }); });
+            next.addEventListener('click', function(){ thumbs.scrollBy({ left: step, behavior: 'smooth' }); });
+        }
+    })();
+</script>

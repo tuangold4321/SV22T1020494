@@ -1,0 +1,191 @@
+﻿@using System.Linq
+@model SV22T1020494.Models.Common.PagedResult<SV22T1020494.Models.Catalog.Product>
+@{
+    Layout = null;
+}
+
+<!-- Page navigation (top) -->
+@if (Model.PageCount > 1)
+{
+    <ul class="pagination justify-content-between mb-3">
+        <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+            <a class="page-link page-link-js" href="javascript:void(0);" data-page="@(Model.Page - 1)">
+                « Trước
+            </a>
+        </li>
+        <li class="page-item text-center">
+            <span class="page-link">Trang @Model.Page / @Model.PageCount</span>
+        </li>
+        <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+            <a class="page-link page-link-js" href="javascript:void(0);" data-page="@(Model.Page + 1)">
+                Tiếp »
+            </a>
+        </li>
+    </ul>
+}
+
+<div>
+    @foreach (var item in Model.DataItems.Take(3))
+    {
+        <form method="post" class="border rounded p-2 mb-2" data-productid="@item.ProductID">
+            <strong>@item.ProductName</strong>
+
+            <div class="row mt-2">
+                <div class="col-4">
+                    <img src="~/images/products/@item.Photo"
+                         class="img-fluid border" style="max-height:100px" />
+                </div>
+                <div class="col-8">
+                    <div class="row g-2">
+                        <div class="col-7">
+                            <label class="form-label mb-0">Giá</label>
+                            <input class="form-control form-control-sm money-input"
+                                   value="@item.Price" />
+                        </div>
+                        <div class="col-5">
+                            <label class="form-label mb-0">SL</label>
+                            <input type="number"
+                                   min="1"
+                                   value="1"
+                                   class="form-control form-control-sm qty-input" />
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-sm btn-primary mt-2 w-100 add-to-cart"
+                            data-productid="@item.ProductID" data-price="@item.Price">
+                        <i class="bi bi-cart-plus"></i>
+                        Thêm vào giỏ
+                    </button>
+                </div>
+            </div>
+        </form>
+    }
+
+</div>
+
+<!-- Inline script: attach robust click handler to pagination links; perform AJAX fetch and update correct container -->
+<script>
+    (function () {
+        document.addEventListener('click', function (e) {
+            // Handle pagination
+            var closest = e.target.closest ? e.target.closest('.page-link-js') : null;
+            if (closest) {
+                e.preventDefault();
+
+                var pageItem = closest.closest ? closest.closest('.page-item') : null;
+                if (pageItem && pageItem.classList && pageItem.classList.contains('disabled')) return;
+
+                var page = parseInt(closest.getAttribute('data-page')) || 1;
+
+                // Determine search value (prefer #searchForm input, else any input[name='searchValue'])
+                var searchEl = document.querySelector('#searchForm input[name="searchValue"]') || document.querySelector('input[name="searchValue"]');
+                var searchValue = searchEl ? searchEl.value : '';
+
+                var url = '/Order/SearchProduct?searchValue=' + encodeURIComponent(searchValue) + '&page=' + page;
+
+                // Determine where to render results: prefer form[data-target], then #searchResults, then modal .modal-content
+                var formWithTarget = document.querySelector('form[data-target]');
+                var targetId = formWithTarget ? formWithTarget.dataset.target : null;
+                var targetEl = null;
+                if (targetId) targetEl = document.getElementById(targetId);
+                if (!targetEl) targetEl = document.getElementById('searchResults');
+                if (!targetEl) targetEl = document.querySelector('.modal-content');
+
+                if (targetEl) {
+                    targetEl.innerHTML = '<div class="text-center py-4"><span>Đang tải dữ liệu...</span></div>';
+                }
+
+                fetch(url, { method: 'GET' })
+                    .then(function (res) { return res.text(); })
+                    .then(function (html) {
+                        if (targetEl) {
+                            targetEl.innerHTML = html;
+                        }
+                    })
+                    .catch(function () {
+                        if (targetEl) {
+                            targetEl.innerHTML = '<div class="text-danger">Không tải được dữ liệu</div>';
+                        }
+                    });
+                return;
+            }
+
+            // Handle "Add to cart" button
+            var addBtn = e.target.closest ? e.target.closest('.add-to-cart') : null;
+            if (addBtn) {
+                e.preventDefault();
+
+                var form = addBtn.closest('form');
+                if (!form) return;
+
+                var productId = parseInt(addBtn.getAttribute('data-productid')) || 0;
+                var quantityInput = form.querySelector('.qty-input');
+                var priceInput = form.querySelector('.money-input');
+                
+                var quantity = quantityInput ? parseInt(quantityInput.value) || 1 : 1;
+
+                // Prefer raw data-price attribute (unformatted) to avoid localization parsing issues
+                var rawPriceAttr = addBtn.getAttribute('data-price');
+                var rawPrice = rawPriceAttr ? parseFloat(rawPriceAttr.toString().replace(/\./g, '').replace(/,/g, '.')) : NaN;
+
+                var price = 0;
+                if (!isNaN(rawPrice) && rawPrice > 0) {
+                    price = rawPrice;
+                } else if (priceInput) {
+                    // Fallback: remove grouping dots and convert comma to dot
+                    var v = priceInput.value.replace(/\./g, '').replace(/,/g, '.');
+                    price = parseFloat(v) || 0;
+                } else {
+                    price = parseFloat(addBtn.getAttribute('data-price')) || 0;
+                }
+
+                if (productId === 0 || quantity <= 0) {
+                    alert('Vui lòng kiểm tra số lượng hoặc mặt hàng');
+                    return;
+                }
+
+                // Call AddCartItem API
+                var formData = new FormData();
+                formData.append('productId', productId);
+                formData.append('quantity', quantity);
+                formData.append('price', price);
+
+                fetch('/Order/AddCartItem', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(function (res) { return res.json(); })
+                    .then(function (data) {
+                        console.log('AddCartItem response:', data);
+                        if (data.code > 0) {
+                            // Refresh shopping cart
+                            var cartEl = document.getElementById('shoppingCart');
+                            if (cartEl) {
+                                fetch('/Order/ShowCart', { method: 'GET' })
+                                    .then(function (res) { return res.text(); })
+                                    .then(function (html) {
+                                        cartEl.innerHTML = html;
+                                        // Reattach event handlers cho các element mới
+                                        if (window.attachModalHandlers) {
+                                            window.attachModalHandlers();
+                                        }
+                                    })
+                                    .catch(function () {
+                                        alert('Lỗi khi cập nhật giỏ hàng');
+                                    });
+                            }
+                            // Clear quantity input
+                            if (quantityInput) quantityInput.value = '1';
+                        } else {
+                            alert(data.message || 'Không thể thêm vào giỏ');
+                        }
+                    })
+                    .catch(function (err) {
+                        console.error('AddCartItem error:', err);
+                        alert('Lỗi khi thêm vào giỏ: ' + err.message);
+                    });
+            }
+        });
+    })();
+</script>
+

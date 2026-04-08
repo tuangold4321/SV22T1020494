@@ -1,0 +1,28 @@
+﻿@{
+    Layout = null;
+}
+
+<div class="modal-header text-bg-danger">
+    <strong class="modal-title">
+        Xóa mặt hàng khỏi đơn hàng
+    </strong>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+
+<div class="modal-body">
+    <div class="alert alert-danger d-flex align-items-center">
+        <i class="bi bi-info-circle me-2"></i>
+        Bạn có muốn xóa mặt hàng này ra khỏi đơn hàng không?
+    </div>
+</div>
+
+<div class="modal-footer">
+    <button type="button" class="btn btn-primary" onclick="(function(btn){var productId=@(ViewBag.ProductID ?? 0); if(!productId){alert('Mặt hàng không hợp lệ');return;} var formData=new FormData(); formData.append('productId', productId); fetch('/Order/DeleteCartItem',{method:'POST', body: formData}).then(function(res){return res.json();}).then(function(data){ if(data.code>0){ var modalEl = btn.closest('.modal') || document.getElementById('dialogModal'); try{ var modal = bootstrap.Modal.getInstance(modalEl); if(modal) modal.hide(); }catch(e){} var cartEl = document.getElementById('shoppingCart'); if(cartEl){ fetch('/Order/ShowCart').then(function(res){return res.text();}).then(function(html){ cartEl.innerHTML = html; if(window.attachModalHandlers) window.attachModalHandlers(); }).catch(function(){ alert('Lỗi khi cập nhật giỏ hàng'); }); } } else { alert(data.message || 'Không thể xóa mặt hàng'); } }).catch(function(err){ alert('Lỗi: ' + (err && err.message ? err.message : err)); }); })(this)">
+        <i class="bi bi-check"></i> Chấp nhận
+    </button>
+    <button type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal">
+        Đóng
+    </button>
+</div>

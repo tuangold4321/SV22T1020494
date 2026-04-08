@@ -1,0 +1,101 @@
+﻿using System.Collections.Generic;
+using SV22T1020494.Models.Sales;
+
+namespace SV22T1020494.Admin
+{
+    /// <summary>
+    /// Lớp cung cấp các chức năng xử lý trên giỏ hàng
+    /// (giỏ hàng được lưu trong session)
+    /// </summary>
+    public static class ShoppingCartHelper
+    {
+        private const string CART = "ShoppingCart";
+        /// <summary>
+        /// Lấy giở hàng từ session
+        /// </summary>
+        /// <returns></returns>
+        public static List<OrderDetailViewInfo> GetShoppingCart()
+        {
+            var cart = ApplicationContext.GetSessionData<List<OrderDetailViewInfo>>(CART);
+            if (cart == null)
+            {
+                cart = new List<OrderDetailViewInfo>();
+                ApplicationContext.SetSessionData(CART, cart);
+            }
+            return cart;
+        }
+
+        /// <summary>
+        /// Lấy thông tin 1 mặt hàng trong giỏ hàng
+        /// </summary>
+        /// <param name="productID"></param>
+        /// <returns></returns>
+        public static OrderDetailViewInfo? GetCartItem(int productID)
+        {
+            var cart = GetShoppingCart();
+            var item = cart.Find(m => m.ProductID == productID);
+            return item;
+        }
+        
+        /// <summary>
+        /// Thêm hàng vào giỏ hàng
+        /// </summary>
+        /// <param name="item"></param>
+        public static void AddItemToCart(OrderDetailViewInfo item)
+        {
+            var cart = GetShoppingCart();
+            var existItem = cart.Find(m => m.ProductID == item.ProductID);
+            if (existItem == null)
+            {
+                cart.Add(item);
+            }
+            else
+            {
+                existItem.Quantity += item.Quantity;
+                existItem.SalePrice = item.SalePrice;
+            }
+            ApplicationContext.SetSessionData(CART, cart);
+        }
+        
+        /// <summary>
+        /// Xoá mặt hàng ra khỏi giỏ hàng
+        /// </summary>
+        public static void RemoveItemFromCart(int productID)
+        {
+            var cart = GetShoppingCart();
+            int index = cart.FindIndex(m => m.ProductID == productID);
+            if (index >= 0)
+            {
+                cart.RemoveAt(index);
+                ApplicationContext.SetSessionData(CART, cart);
+            }
+        }
+
+        /// <summary>
+        /// Cập nhật một mục trong giỏ hàng (số lượng/giá)
+        /// </summary>
+        public static void UpdateItemInCart(OrderDetailViewInfo item)
+        {
+            var cart = GetShoppingCart();
+            var existItem = cart.Find(m => m.ProductID == item.ProductID);
+            if (existItem == null)
+            {
+                cart.Add(item);
+            }
+            else
+            {
+                existItem.Quantity = item.Quantity;
+                existItem.SalePrice = item.SalePrice;
+            }
+            ApplicationContext.SetSessionData(CART, cart);
+        }
+
+        /// <summary>
+        /// Xoá toàn bộ giỏ hàng
+        /// </summary>
+        public static void ClearCart()
+        {
+            ApplicationContext.SetSessionData(CART, new List<OrderDetailViewInfo>());
+        }
+    }
+}

@@ -1,0 +1,503 @@
+﻿@model SV22T1020494.Shop.Models.CartViewModel
+@{
+    ViewData["Title"] = "Giỏ hàng";
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Giỏ hàng - Tuấn Shop</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8f9fa;
+            color: #2c3e50;
+        }
+
+        .cart-wrapper {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 32px 24px;
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: 24px;
+            align-items: start;
+        }
+
+        .select-line {
+            background: white;
+            border: 1px solid #e6e6e6;
+            border-radius: 6px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .cart-list {
+            background: white;
+            border: 1px solid #e6e6e6;
+            border-radius: 8px;
+            padding: 0;
+            margin-top: 12px;
+        }
+
+        .cart-item {
+            display: flex;
+            gap: 14px;
+            padding: 18px;
+            border-bottom: 1px solid #f0f0f0;
+            align-items: center;
+        }
+
+            .cart-item .thumb {
+                width: 120px;
+                height: 120px;
+                background: #f2f4f6;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 6px;
+                overflow: hidden;
+            }
+
+                .cart-item .thumb img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+
+            .cart-item .meta {
+                flex: 1;
+            }
+
+            .cart-item .actions {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                align-items: flex-end;
+            }
+
+        .btn {
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all .15s ease;
+            position: relative;
+        }
+
+            .btn.danger {
+                background: #ff6b6b;
+                color: white;
+                border: none;
+            }
+
+            .btn.primary {
+                background: #f26b21;
+                color: white;
+                border: none;
+            }
+
+        .empty {
+            padding: 60px 20px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 18px;
+        }
+
+            .empty .actions {
+                margin-top: 20px;
+                display: flex;
+                gap: 12px;
+                justify-content: center;
+            }
+
+        .summary-box {
+            background: white;
+            border: 1px solid #e6e6e6;
+            border-radius: 8px;
+            padding: 18px;
+        }
+
+        .qty-controls button {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: 1px solid #eee;
+            background: white;
+            cursor: pointer;
+            transition: all .12s ease;
+        }
+        /* hover effects for cart buttons */
+        .btn:hover, .qty-controls button:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(44,62,80,0.06); }
+        .btn.primary:hover { background:#d65b1b; }
+        .btn.danger:hover { background:#e55b5b; }
+    </style>
+</head>
+<body>
+    @await Html.PartialAsync("_Header")
+
+    <!-- Payment success notice (shown when returning from checkout) -->
+    <div id="paymentNotice" style="display:none;">
+        <div style="max-width:1400px;margin:16px auto;padding:12px 24px;background:#e9f8ef;border:1px solid #bfe6c8;color:#1f6d3a;font-weight:600;border-radius:6px;">Đơn hàng đã được đặt! Vui lòng vào Quản lý tài khoản &gt; Xem đơn hàng &gt; Xem trạng thái xử lý của đơn hàng vừa đặt để xem trạng thái xử lý đơn hàng.</div>
+    </div>
+
+    <main class="cart-main">
+        <div class="cart-wrapper">
+            <div class="left-col" style="grid-column:1 / 2;">
+                <h2>Giỏ hàng của bạn</h2>
+                <div id="selectLine" class="select-line" style="background:white; border:1px solid #e6e6e6; border-radius:8px; padding:12px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" />
+                        <label for="selectAll" style="font-weight:600; color:#7f8c8d;">CHỌN TẤT CẢ</label>
+                        <span style="color:#7f8c8d; font-size:13px;">(<span id="itemsCount">0</span> SẢN PHẨM)</span>
+                    </div>
+                    <div>
+                        <button class="btn danger" id="removeSelectedBtn" onclick="removeSelected()">XÓA</button>
+                    </div>
+                </div>
+
+                <div id="cartContainer" class="cart-list">
+                    <div class="empty">Đang tải giỏ hàng...</div>
+                </div>
+            </div>
+
+            <aside id="summaryPanel" style="grid-column:2 / 3;">
+                <div style="background:white; border:1px solid #e6e6e6; border-radius:8px; padding:18px;">
+                    <h3>Chi tiết đơn hàng</h3>
+                    <div style="display:flex; justify-content:space-between; margin-top:12px; font-weight:700; font-size:18px;"><div>Tổng cộng</div><div id="summaryTotal">0 đ</div></div>
+                <button id="checkoutBtn" class="btn primary" style="width:100%; margin-top:16px; padding:12px; font-size:16px;" onclick="goToCheckout()">Mua hàng(<span id="checkoutCount">0</span>)</button>
+                </div>
+            </aside>
+        </div>
+    </main>
+
+    @await Html.PartialAsync("_Footer")
+
+    <script>
+        const addEmptyModeStyles = () => {
+            const css = `
+                html, body { height: 100%; }
+                body { display: flex; flex-direction: column; }
+                main.cart-main { flex: 1 1 auto; display: block; position: relative; padding-bottom: 420px; }
+                .cart-wrapper { max-width:1400px; margin:0 auto; padding:32px 24px; display:grid; grid-template-columns: 1fr 360px; gap:24px; align-items:start; }
+                .cart-wrapper .left-col{ display:flex; flex-direction:column; }
+                .cart-wrapper .left-col > .cart-list{ flex:1 1 auto; display:flex; flex-direction:column; }
+                .cart-list.empty-mode{ background:transparent !important; border:none !important; box-shadow:none !important; display:flex !important; align-items:center !important; justify-content:center !important; min-height:0; }
+                main.cart-main.empty-page .empty-centered{ position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: transparent; padding: 0; margin: 0; text-align: center; color: #7f8c8d; font-size:18px; }
+                .empty-centered .actions{ justify-content:center; }
+                footer, .site-footer { margin-bottom: 0 !important; }
+            `;
+            const s = document.createElement('style'); s.type = 'text/css'; s.appendChild(document.createTextNode(css)); document.head.appendChild(s);
+        };
+        addEmptyModeStyles();
+
+        async function renderCart(){
+            const container = document.getElementById('cartContainer');
+            const cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+            if(!cart.length){
+                const selectLine = document.getElementById('selectLine'); if(selectLine) selectLine.style.display = 'none';
+                const summaryPanel = document.getElementById('summaryPanel'); if(summaryPanel) summaryPanel.style.display = 'none';
+
+                container.classList.add('empty-mode');
+                const main = document.querySelector('main.cart-main'); if(main) main.classList.add('empty-page');
+                container.innerHTML = `
+                    <div class="empty-centered">
+                        <div style="font-size:20px; font-weight:700;">Bạn chưa thêm sản phẩm nào vào giỏ.</div>
+                        <div style="margin-top:18px; color:#7f8c8d;">Hãy thêm sản phẩm bạn yêu thích vào giỏ</div>
+                        <div class="actions" style="margin-top:24px; display:flex; gap:12px; justify-content:center;">
+                            <a href="/Account/Login" class="btn" style="border:1px solid #e6e6e6; background:white;">Đăng nhập</a>
+                            <a href="/Home" class="btn primary">Mua sắm ngay</a>
+                        </div>
+                    </div>
+                `;
+                updateSummary([]);
+                const selectAll = document.getElementById('selectAll'); if(selectAll) selectAll.checked = false;
+                const removeBtn = document.getElementById('removeSelectedBtn'); if(removeBtn) removeBtn.disabled = true;
+                return;
+            } else {
+                const selectLine = document.getElementById('selectLine'); if(selectLine) selectLine.style.display = '';
+                const summaryPanel = document.getElementById('summaryPanel'); if(summaryPanel) summaryPanel.style.display = '';
+                container.classList.remove('empty-mode');
+                const mainEl = document.querySelector('main.cart-main'); if(mainEl) mainEl.classList.remove('empty-page');
+                const selectAll = document.getElementById('selectAll'); if(selectAll) selectAll.checked = true;
+            }
+
+            const getItemId = (c) => c.id ?? c.ProductID ?? c.ID ?? c.productId ?? c.productID ?? null;
+            const ids = cart.map(c => getItemId(c)).filter(x => x != null).join(',');
+
+            let products = [];
+            try {
+                const res = await fetch('/Products/GetProductsByIds?ids=' + encodeURIComponent(ids));
+                if (res.ok) {
+                    products = await res.json();
+                }
+            } catch (e) {
+                console.error('Error fetching products:', e);
+            }
+
+            let html = '';
+            let subtotal = 0;
+            const productMap = {};
+
+            if (products && products.length) {
+                products.forEach(prod => {
+                    // Extract ID safely handling both C# and JS casing
+                    const pId = String(prod.ProductID ?? prod.productId ?? prod.id);
+                    productMap[pId] = prod;
+                });
+            }
+
+            cart.forEach(item => {
+                const itemId = String(item.id ?? item.ID ?? item.productId ?? item.ProductID ?? item.productID);
+                const product = productMap[itemId];
+
+                const qty = Number(item.qty || 1);
+
+                // FIXED: Check for both PascalCase and camelCase properties
+                const name = product ? (product.ProductName ?? product.productName ?? 'Sản phẩm') : (item.name || 'Sản phẩm');
+                const priceVal = product ? Number(product.Price ?? product.price ?? 0) : Number(item.price || 0);
+                const photoVal = product ? (product.Photo ?? product.photo ?? '') : (item.photo || item.image || '');
+
+                const photoUrlSafe = photoVal ? ('/images/products/' + photoVal) : '';
+                const displayId = product ? (product.ProductID ?? product.productId ?? itemId) : itemId;
+                const cartItemId = item.id;
+
+                const line = priceVal * qty;
+                subtotal += line;
+
+                html += `
+                    <div class="cart-item" data-id="${displayId}">
+                        <div style="width:36px; display:flex; align-items:center; justify-content:center;"><input type="checkbox" class="item-check" data-id="${displayId}" onchange="updateRemoveSelectedBtn()" checked /></div>
+                        <div class="thumb"><img src="${photoUrlSafe}" alt="${name}" onerror="this.src='/images/default-product.png'; this.onerror=null;" /></div>
+                        <div class="meta">
+                            <div style="font-weight:600;">${name}</div>
+                            <div style="color:#7f8c8d; margin-top:8px;">₫${priceVal.toLocaleString()}</div>
+                        </div>
+                        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+                            <div style="display:flex; gap:8px; align-items:center;">
+                                <button class="btn" onclick="changeQty(${JSON.stringify(cartItemId)}, -1)">−</button>
+                                <div id="qty-${displayId}" style="min-width:36px; text-align:center;">${qty}</div>
+                                <button class="btn" onclick="changeQty(${JSON.stringify(cartItemId)}, 1)">+</button>
+                            </div>
+                            <button class="btn danger" onclick="deleteItem(${JSON.stringify(cartItemId)})">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+            updateSummary(cart, subtotal);
+
+            try {
+                const selectLine = document.getElementById('selectLine');
+                const summaryPanel = document.getElementById('summaryPanel');
+                const wrapper = document.querySelector('.cart-wrapper');
+                if (selectLine && summaryPanel && wrapper) {
+                    const offset = selectLine.offsetTop || 0;
+                    summaryPanel.style.marginTop = offset + 'px';
+                }
+            } catch (e) { }
+        }
+
+        async function deleteItem(id){
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            cart = cart.filter(c => Number(c.id) !== Number(id));
+            localStorage.setItem('cart', JSON.stringify(cart));
+            try{ fetch('/Cart/DeleteCartItem', { method: 'POST', body: new URLSearchParams({ id: id }) }); }catch(e){}
+            window.updateBadges && window.updateBadges();
+            renderCart();
+        }
+
+        function changeQty(id, delta){
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            const idx = cart.findIndex(c => Number(c.id) === Number(id));
+            if(idx < 0) return;
+            cart[idx].qty = Math.max(1, Number(cart[idx].qty || 1) + Number(delta));
+            localStorage.setItem('cart', JSON.stringify(cart));
+            window.updateBadges && window.updateBadges();
+            const qEl = document.getElementById('qty-' + id);
+            if(qEl) qEl.textContent = cart[idx].qty;
+            renderCart();
+        }
+
+        function updateSummary(cart, subtotal){
+            const count = cart ? cart.reduce((s, it) => s + (it.qty || 0), 0) : 0;
+            const itemsCountEl = document.getElementById('itemsCount');
+            if (itemsCountEl) itemsCountEl.textContent = (cart||[]).length;
+            const summaryCountEl = document.getElementById('summaryCount');
+            if (summaryCountEl) summaryCountEl.textContent = count;
+            const checkoutCountEl = document.getElementById('checkoutCount');
+            if (checkoutCountEl) checkoutCountEl.textContent = count;
+            const summaryTotalEl = document.getElementById('summaryTotal');
+            if (summaryTotalEl) summaryTotalEl.textContent = '₫' + (subtotal||0).toLocaleString();
+        }
+
+        function toggleSelectAll(chk){
+            const checks = document.querySelectorAll('.item-check');
+            checks.forEach(c => c.checked = chk.checked);
+            updateRemoveSelectedBtn();
+        }
+
+        function updateRemoveSelectedBtn(){
+            const any = Array.from(document.querySelectorAll('.item-check')).some(c => c.checked);
+            document.getElementById('removeSelectedBtn').disabled = !any;
+        }
+
+        async function removeSelected(){
+            const checks = Array.from(document.querySelectorAll('.item-check:checked'));
+            if(!checks.length) return;
+
+            const ids = checks.map(c => c.getAttribute('data-id'));
+
+            // Update localStorage cart by removing matching items
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            cart = cart.filter(c => {
+                const itemId = String(c.id ?? c.ID ?? c.productId ?? c.ProductID ?? c.productID ?? '');
+                return !ids.includes(itemId);
+            });
+            localStorage.setItem('cart', JSON.stringify(cart));
+
+            // Notify server for each removed id (best-effort)
+            try{
+                for(const id of ids){
+                    // server expects form-encoded id similar to deleteItem
+                    fetch('/Cart/DeleteCartItem', { method: 'POST', body: new URLSearchParams({ id: id }) }).catch(()=>{});
+                }
+            }catch(e){ }
+
+            window.updateBadges && window.updateBadges();
+            renderCart();
+        }
+
+        async function checkout(){
+            // if not logged in (header exposes window.isAuthenticated), force redirect to login page
+            if (!window.isAuthenticated) {
+                window.location.href = 'http://localhost:29089/Account/Login';
+                return;
+            }
+
+            const cart = JSON.parse(localStorage.getItem('cart')) || [];
+            if (!cart.length) {
+                // show simple notification
+                alert('Giỏ hàng trống');
+                return;
+            }
+
+            const getItemId = (c) => c.id ?? c.ProductID ?? c.ID ?? c.productId ?? c.productID ?? null;
+            const ids = cart.map(c => getItemId(c)).filter(x => x != null).join(',');
+
+            let products = [];
+            try {
+                const res = await fetch('/Products/GetProductsByIds?ids=' + encodeURIComponent(ids));
+                if (res.ok) {
+                    products = await res.json();
+                }
+            } catch (e) {
+                console.error('Error fetching products:', e);
+            }
+
+            const productMap = {};
+            if (products && products.length) {
+                products.forEach(prod => {
+                    const pId = String(prod.ProductID ?? prod.productId ?? prod.id);
+                    productMap[pId] = prod;
+                });
+            }
+
+            const items = [];
+            cart.forEach(item => {
+                const itemId = String(item.id ?? item.ID ?? item.productId ?? item.ProductID ?? item.productID);
+                const product = productMap[itemId];
+
+                if (product) {
+                    items.push({
+                        ProductID: product.ProductID ?? product.productId,
+                        Quantity: Number(item.qty || 1),
+                        Price: Number(product.Price ?? product.price ?? 0)
+                    });
+                }
+            });
+
+            if (!items.length) {
+                alert('Không có sản phẩm hợp lệ trong giỏ');
+                return;
+            }
+
+            try {
+                const response = await fetch('/Cart/CreateOrder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        Province: 'TP. Hồ Chí Minh',
+                        Address: 'Địa chỉ mặc định',
+                        Items: items
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // show a banner just below the header for 8 seconds
+                    try {
+                        const headerEl = document.querySelector('header');
+                        if (headerEl) {
+                            const banner = document.createElement('div');
+                            banner.id = 'paymentBanner';
+                            banner.innerHTML = '<div style="max-width:1400px;margin:0 auto;padding:12px 24px;background:#e9f8ef;border-bottom:1px solid #bfe6c8;color:#1f6d3a;font-weight:normal;"><strong>Quản lý tài khoản &gt; Xem đơn hàng &gt; Xem trạng thái xử lý</strong></div>';
+                            headerEl.parentNode.insertBefore(banner, headerEl.nextSibling);
+                            setTimeout(()=>{ banner && banner.remove(); }, 8000);
+                        }
+                    } catch(e) { /* ignore */ }
+                    // clear cart
+                    localStorage.removeItem('cart');
+                    window.updateBadges && window.updateBadges();
+                    // disable checkout button
+                    const btn = document.getElementById('checkoutBtn'); if (btn) btn.disabled = true;
+                } else if (result.redirectUrl) {
+                    // fallback: redirect if server asks
+                    window.location.href = result.redirectUrl;
+                } else {
+                    alert('Lỗi: ' + (result.message || 'Không thể tạo đơn hàng'));
+                }
+            } catch (error) {
+                console.error('Checkout error:', error);
+                alert('Có lỗi xảy ra khi đặt hàng');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', ()=>{
+            try {
+                const serverStamp = '@(ViewData["AppStartStamp"] ?? "")';
+                if (serverStamp) {
+                const localStamp = localStorage.getItem('appStartStamp');
+                if (!localStamp || localStamp !== serverStamp) {
+                    // Update stored app start stamp but do NOT clear the cart so rebuilds don't wipe user cart
+                    localStorage.setItem('appStartStamp', serverStamp);
+                    // optionally refresh badges to reflect possible server-side changes
+                    window.updateBadges && window.updateBadges();
+                }
+                }
+            } catch (e) { }
+            renderCart();
+            // If redirected after successful checkout, show payment notice
+            try {
+                if (localStorage.getItem('paymentNotice') === '1') {
+                    const notice = document.getElementById('paymentNotice'); if (notice) notice.style.display = 'block';
+                    localStorage.removeItem('paymentNotice');
+                }
+            } catch(e) {}
+        });
+
+        function goToCheckout(){
+            // navigate to checkout page which will read cart from localStorage
+            window.location.href = '/Cart/Checkout';
+        }
+    </script>
+</body>
+</html>

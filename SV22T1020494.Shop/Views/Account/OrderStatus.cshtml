@@ -1,0 +1,74 @@
+﻿@model SV22T1020494.Models.Sales.OrderViewInfo
+@{
+    ViewData["Title"] = "Trạng thái đơn hàng";
+    var id = Context?.Request?.Query["id"].ToString();
+    var order = Model ?? (ViewBag.Order as SV22T1020494.Models.Sales.OrderViewInfo);
+}
+
+@await Html.PartialAsync("_Header")
+
+<div style="max-width:1100px;margin:24px auto;padding:16px;">
+    <div style="background:#fff;padding:16px;border:1px solid #e0e0e0;border-radius:6px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <a href="javascript:history.back()" style="color:#7f8c8d;text-decoration:none;">&lt; TRỞ LẠI</a>
+            <div style="font-weight:700;color:#2c3e50;">MÃ ĐƠN HÀNG: @(order != null ? order.OrderID.ToString() : (id ?? "-"))</div>
+            <div style="color:#f26b21;font-weight:700;">@(order != null ? order.Status.ToString() : "")</div>
+        </div>
+
+        <div style="margin-top:22px;">
+            <style>
+                .step-row{display:flex;align-items:center;gap:12px}
+                .step{display:flex;flex-direction:column;align-items:center;flex:1}
+                .step .circle{width:44px;height:44px;border-radius:50%;border:2px solid #eee;display:flex;align-items:center;justify-content:center;background:#fff}
+                .step.done .circle{border-color:#39b54a;background:#eaf9ee}
+                .step .title{margin-top:8px;font-weight:700;color:#2c3e50}
+                .step .time{margin-top:4px;color:#9aa3a8;font-size:12px}
+                .connector{height:4px;background:#eee;flex:1;margin-top:-22px}
+                .connector.done{background:#39b54a}
+            </style>
+
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div style="flex:1;display:flex;align-items:center;gap:12px;">
+                    @{
+                        // New simplified steps: Ordered, Accepted, Shipped to carrier, Completed
+                        var steps = new List<(string Title, DateTime? Time, bool Done)>
+                        {
+                            ("Đơn Hàng Đã Đặt", order?.OrderTime, order != null && order.OrderTime != default(DateTime)),
+                            ("Đơn Hàng Đã Xác Nhận", order?.AcceptTime, order != null && (int)order.Status >= (int)SV22T1020494.Models.Sales.OrderStatusEnum.Accepted),
+                            ("Đã Giao Cho ĐVVC", order?.ShippedTime, order != null && (int)order.Status >= (int)SV22T1020494.Models.Sales.OrderStatusEnum.Shipping),
+                            ("Hoàn Tất Giao Hàng", order?.FinishedTime, order != null && order.Status == SV22T1020494.Models.Sales.OrderStatusEnum.Completed)
+                        };
+
+                        var isCancelled = order != null && (order.Status == SV22T1020494.Models.Sales.OrderStatusEnum.Cancelled);
+                        var isRejected = order != null && (order.Status == SV22T1020494.Models.Sales.OrderStatusEnum.Rejected);
+                    }
+
+                    @for (int i = 0; i < steps.Count; i++)
+                    {
+                        var s = steps[i];
+                        var stepClass = s.Done ? "done" : "";
+                        <div style="display:flex;align-items:center;flex:1;">
+                            <div class="step @stepClass" style="flex:1;">
+                                <div class="circle">@((s.Done) ? "✓" : "")</div>
+                                <div class="title">@s.Title</div>
+                                <div class="time">@((s.Time.HasValue) ? s.Time.Value.ToString("dd-MM-yyyy HH:mm") : "")</div>
+                            </div>
+                            @if (i < steps.Count - 1)
+                            {
+                                <div class="connector @(s.Done ? "done" : "")"></div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @if (isCancelled || isRejected)
+            {
+                var msg = isCancelled ? "Đơn hàng này đã bị huỷ!" : "Đơn hàng này đã bị từ chối!";
+                <div style="margin-top:18px;padding:12px;background:#fdecea;border-radius:6px;color:#9a2a2a;font-weight:700;">@msg</div>
+            }
+        </div>
+    </div>
+</div>
+
+@await Html.PartialAsync("_Footer")

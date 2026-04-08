@@ -1,0 +1,160 @@
+﻿@model SV22T1020494.Models.Catalog.Product
+@{
+    ViewData["Title"] = Model?.ProductName ?? "Product Detail";
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - Tuấn Shop</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        body { font-family:'Inter',sans-serif; background:#f8f9fa; color:#2c3e50; }
+        .product-detail { max-width:1400px; margin:0 auto; padding:32px 24px; }
+        /* reduce left gallery width and push it toward the right side of its column */
+        .detail-grid { display:grid; grid-template-columns: 520px 1fr; gap:24px; }
+        .gallery { background:white; border-radius:8px; padding:16px; border:1px solid #e6e6e6; justify-self:end; max-width:540px; }
+        /* let the partial control exact main box size; make it auto here so it won't expand full column */
+        .gallery .main { width:auto; aspect-ratio:1; background:#f2f4f6; display:flex; align-items:center; justify-content:center; border-radius:6px; }
+        .info { background:white; border-radius:8px; padding:24px; border:1px solid #e6e6e6; }
+        .price { color:#ff2d6f; font-size:28px; font-weight:700; margin:12px 0; }
+        .add-btn { padding:12px 18px; background:#ff2d6f; color:white; border:none; border-radius:8px; font-weight:700; cursor:pointer; }
+        .add-btn.loading { opacity:0.8; transform:translateY(-1px); }
+        .attr-chip { display:inline-block; padding:6px 10px; border:1px solid #e6e6e6; border-radius:18px; margin:6px; cursor:pointer; background:#fff; }
+        .attr-chip:hover { background:#f2f6f9; }
+        /* Color swatch style */
+        .attr-swatch { display:flex; align-items:center; justify-content:center; padding:10px 20px; border:1px solid #e6e6e6; border-radius:6px; margin:0; background:#fff; cursor:pointer; position:relative; min-width:96px; height:48px; }
+        .attr-swatch span.value { text-transform:lowercase; font-weight:600; color:#2c3e50; }
+        /* ribbon-like tick in bottom-right corner */
+        .attr-swatch .tick { position:absolute; right:6px; bottom:6px; width:22px; height:16px; background:#ff2d6f; color:#fff; display:none; align-items:center; justify-content:center; font-size:12px; font-weight:700; transform:rotate(25deg); border-radius:2px; box-shadow:0 1px 0 rgba(0,0,0,0.06); }
+        .attr-swatch.selected { border-color:#ff2d6f; color:#ff2d6f; }
+        .attr-swatch.selected .tick { display:flex; }
+    </style>
+</head>
+<body>
+    @await Html.PartialAsync("_Header")
+
+    <div class="product-detail">
+
+        <div class="detail-grid">
+            <div class="gallery">
+                @{ 
+                    var photos = ViewBag.Photos as List<SV22T1020494.Models.Catalog.ProductPhoto>;
+                    // Prefer the product's current main photo (Model.Photo) when available.
+                    // Fall back to a photo marked as DisplayOrder == 1, then to the first gallery photo.
+                    var mainPhoto = Model?.Photo ?? photos?.FirstOrDefault(p => p.DisplayOrder == 1)?.Photo ?? photos?.FirstOrDefault()?.Photo;
+                    ViewBag.MainPhoto = mainPhoto; // pass to partial via ViewBag
+                }
+                @await Html.PartialAsync("~/Views/Product/ListPhotos.cshtml", photos)
+            </div>
+
+            <div class="info">
+                <h1 style="font-size:22px; font-weight:700;">@Model.ProductName</h1>
+                <div style="margin-top:6px; font-size:13px; color:#7f8c8d;">★★★★★ <span style="color:#7f8c8d; font-weight:600;">(5)</span></div>
+
+                @* Supplier name displayed here *@
+                @if (!string.IsNullOrWhiteSpace(ViewBag.SupplierName as string))
+                {
+                    <div style="margin-top:10px;font-size:16px;font-weight:700;color:#2c3e50;">Nhà cung cấp: @ViewBag.SupplierName</div>
+                }
+
+                @* Move product description below the supplier name as requested *@
+                @if (!string.IsNullOrWhiteSpace(Model?.ProductDescription))
+                {
+                    <div style="margin-top:8px; color:#7f8c8d;">@Model.ProductDescription</div>
+                }
+
+                <div class="price">₫@Model.Price.ToString("N0")</div>
+
+                @* Color / "Màu sắc" rendered just below the price *@
+                @{ var attrs = ViewBag.Attributes as List<SV22T1020494.Models.Catalog.ProductAttribute>; }
+                @{ var colorGroup = attrs?.Where(a => !string.IsNullOrWhiteSpace(a.AttributeName) && (a.AttributeName.Contains("Màu") || a.AttributeName.ToLower().Contains("color"))).ToList(); }
+                @{ var colorValues = colorGroup != null && colorGroup.Any() ? colorGroup.Select(a => a.AttributeValue).Where(v => !string.IsNullOrWhiteSpace(v)).Distinct().ToList() : null; }
+                @{ var allPhotos = ViewBag.Photos as List<SV22T1020494.Models.Catalog.ProductPhoto>; var colorPhoto = Model?.Photo ?? allPhotos?.FirstOrDefault(p => p.DisplayOrder == 1)?.Photo ?? allPhotos?.FirstOrDefault()?.Photo; }
+                @if (colorValues != null && colorValues.Any())
+                {
+                    <div style="display:flex; align-items:center; gap:16px; margin-top:12px;">
+                        <div style="width:80px;color:#7f8c8d;font-weight:600;">Màu sắc</div>
+                        <div style="display:flex; gap:12px;">
+                            @foreach (var v in colorValues)
+                            {
+                                <button type="button" class="attr-swatch" data-val="@v" aria-pressed="false">
+                                    <span class="value">@v</span>
+                                    <span class="tick">✓</span>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <div style="margin:12px 0; display:flex; gap:12px; align-items:center;">
+                    <label>Số lượng:</label>
+                    <button type="button" onclick="decrementQty()">-</button>
+                    <input id="qty" value="1" style="width:48px;text-align:center;padding:6px;border:1px solid #eee;border-radius:6px;" />
+                    <button type="button" onclick="incrementQty()">+</button>
+                </div>
+
+                <div style="display:flex; gap:12px; margin-top:18px;">
+                    <button id="detailAddBtn" class="add-btn" onclick="onDetailAdd()">Thêm vào giỏ</button>
+                    @* Removed the "Mua ngay" (Buy now) button per request *@
+                </div>
+
+
+
+            </div>
+        </div>
+    </div>
+
+    @await Html.PartialAsync("_Footer")
+
+    <script>
+        function incrementQty(){ const q = document.getElementById('qty'); q.value = parseInt(q.value||1)+1; }
+        function decrementQty(){ const q = document.getElementById('qty'); if(parseInt(q.value||1)>1) q.value = parseInt(q.value)-1; }
+
+        function onDetailAdd(){
+            const btn = document.getElementById('detailAddBtn');
+            btn.classList.add('loading');
+            btn.disabled = true;
+            const id = @Model.ProductID;
+            const name = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ProductName));
+            const price = @Model.Price;
+            const photo = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(mainPhoto));
+            const qty = Number(document.getElementById('qty').value || 1);
+            window.addProductToCart && window.addProductToCart(id, qty, { name: name, price: price, photo: photo });
+            setTimeout(()=>{ btn.classList.remove('loading'); btn.disabled = false; }, 1200);
+        }
+
+        document.addEventListener('DOMContentLoaded', function(){
+            // Non-color attribute chips: redirect to search
+            document.querySelectorAll('.attr-chip').forEach(function(b){
+                b.addEventListener('click', function(){
+                    var val = this.getAttribute('data-val');
+                    if (!val) return;
+                    window.location.href = '/Home/Search?q=' + encodeURIComponent(val);
+                });
+            });
+
+            // Color swatches: toggle selection with tick, do not redirect
+            document.querySelectorAll('.attr-swatch').forEach(function(b){
+                b.addEventListener('click', function(e){
+                    e.preventDefault();
+                    var already = this.classList.contains('selected');
+                    var parent = this.parentElement;
+                    if (parent) {
+                        parent.querySelectorAll('.attr-swatch').forEach(function(s){ s.classList.remove('selected'); s.setAttribute('aria-pressed','false'); });
+                    }
+                    if (!already) {
+                        this.classList.add('selected');
+                        this.setAttribute('aria-pressed','true');
+                    } else {
+                        this.classList.remove('selected');
+                        this.setAttribute('aria-pressed','false');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,154 @@
+﻿@model SV22T1020494.Models.Catalog.ProductPhoto
+@{
+}
+@section PageToolBar {
+    <button type="submit" form="formEdit" class="btn btn-primary">
+        <i class="bi bi-save"></i>
+        Lưu ảnh
+    </button>
+
+    @{ var backId = Model?.ProductID ?? ViewBag.ProductID ?? 0; }
+    <a href="~/Product/Edit/@backId#photos" class="btn btn-secondary ms-1">
+        <i class="bi bi-arrow-left"></i>
+        Quay lại
+    </a>
+}
+<div class="row justify-content-center">
+    <div class="col-12">
+        <div class="card card-outline card-info">
+            <div class="card-header">
+                <h5 class="mb-0">Thông tin ảnh mặt hàng</h5>
+            </div>
+
+    <div class="card-body">
+                <form id="formEdit" asp-action="EditPhoto" asp-controller="Product" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="ProductID" value="@(Model?.ProductID ?? ViewBag.ProductID)" />
+                    <input type="hidden" name="PhotoID" value="@(Model?.PhotoID ?? 0)" />
+                    @* Preserve existing photo filename so toggling IsHidden without uploading new file does not clear Photo *@
+                    <input type="hidden" name="Photo" value="@(Model?.Photo ?? string.Empty)" />
+
+                    <div class="row mb-3 align-items-center">
+                        <label class="col-sm-3 fw-semibold">Ảnh</label>
+                        <div class="col-sm-9">
+                            <input type="file"
+                                   name="PhotoFile"
+                                   class="form-control"
+                                   accept="image/*"
+                                   data-img-preview="imgPreview"
+                                   onchange="previewImage(this)" />
+                            @{ 
+                                var hasPhotoError = (ViewData.ModelState.ContainsKey("PhotoFile") && ViewData.ModelState["PhotoFile"].Errors.Any())
+                                                    || (ViewData.ModelState.ContainsKey("Photo") && ViewData.ModelState["Photo"].Errors.Any());
+                                var hasExistingPhoto = Model != null && !string.IsNullOrWhiteSpace(Model.Photo);
+                                var serverErrorText = hasPhotoError ? ((ViewData.ModelState.ContainsKey("PhotoFile") && ViewData.ModelState["PhotoFile"].Errors.Any()) ? ViewData.ModelState["PhotoFile"].Errors[0].ErrorMessage : ViewData.ModelState["Photo"].Errors[0].ErrorMessage) : string.Empty;
+                            }
+                            <div id="photoError" class="text-danger" style="font-size: 0.875rem; margin-top: 0.25rem; @(hasPhotoError && !hasExistingPhoto ? "display:block;" : "display:none;")">
+                                @serverErrorText
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-sm-3 fw-semibold">Xem trước</label>
+                        <div class="col-sm-9">
+                            @{ var preview = Model != null && !string.IsNullOrWhiteSpace(Model.Photo) ? Model.Photo : "nophoto.png"; var previewSrc = Url.Content("~/images/products/" + preview); }
+                            <img id="imgPreview"
+                                 src="@previewSrc"
+                                  class="img-thumbnail"
+                                  style="max-height:200px;" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-sm-3 fw-semibold">Mô tả</label>
+                        <div class="col-sm-9">
+                            <input type="text" name="Description"
+                                      class="form-control" value="@(Model?.Description ?? string.Empty)" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-sm-3 fw-semibold">Thứ tự hiển thị</label>
+                        <div class="col-sm-3">
+                            <input type="number"
+                                   name="DisplayOrder"
+                                   class="form-control"
+                                   value="@(Model?.DisplayOrder ?? 1)"
+                                   min="1" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <label class="col-sm-3 fw-semibold">Trạng thái</label>
+                        <div class="col-sm-9">
+                            <div class="form-check">
+                                @* ensure a value posts when unchecked *@
+                                <input type="hidden" name="IsHidden" value="false" />
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       name="IsHidden"
+                                       value="true"
+                                       id="IsHidden" @(Model != null && Model.IsHidden ? "checked" : string.Empty) />
+                                <label class="form-check-label" for="IsHidden">
+                                    Ẩn ảnh
+                                </label>
+                            </div>
+                        </div>
+                    </div>                    
+                </form>
+                <script>
+                    (function() {
+                        var form = document.getElementById('formEdit');
+                        if (!form) return;
+                        var fileInput = form.querySelector('input[type="file"][name="PhotoFile"]');
+                        var serverError = document.getElementById('photoError');
+                        var imgPreview = document.getElementById('imgPreview');
+
+                        function hasExistingPreview(){
+                            if (!imgPreview) return false;
+                            var src = imgPreview.getAttribute('src') || '';
+                            return src.indexOf('nophoto.png') === -1;
+                        }
+
+                        function showError(msg){
+                            if (!serverError) return;
+                            serverError.textContent = msg;
+                            serverError.style.display = '';
+                        }
+                        function hideError(){
+                            if (!serverError) return;
+                            serverError.textContent = '';
+                            serverError.style.display = 'none';
+                        }
+
+                        form.addEventListener('submit', function(e){
+                            // if no file chosen and there is no existing preview (placeholder), prevent submit and show message
+                            var fileChosen = fileInput && fileInput.files && fileInput.files.length > 0;
+                            var hasPreview = hasExistingPreview();
+                            if (!fileChosen && !hasPreview){
+                                e.preventDefault();
+                                showError('Vui lòng chọn ảnh!');
+                                if (fileInput) fileInput.focus();
+                                return false;
+                            }
+                            // otherwise allow submit; server-side will validate too
+                        });
+
+                        if (fileInput){
+                            fileInput.addEventListener('change', function(){
+                                if (fileInput.files && fileInput.files.length > 0) hideError();
+                                else if (!hasExistingPreview()) showError('Vui lòng chọn ảnh!');
+                            });
+                        }
+
+                        // initial state: if server set error and no existing photo, show it
+                        if (serverError && serverError.textContent && !hasExistingPreview()){
+                            serverError.style.display = '';
+                        }
+                    })();
+                </script>
+            </div>
+        </div>
+    </div>
+</div>

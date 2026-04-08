@@ -1,0 +1,289 @@
+﻿@model SV22T1020494.Models.Catalog.Product
+@{
+}
+@section PageToolBar {
+    <button type="submit" form="formEdit" class="btn btn-primary">
+        <i class="bi bi-save"></i>
+        Lưu dữ liệu
+    </button>
+
+    <a href="~/Product" class="btn btn-secondary ms-1">
+        <i class="bi bi-arrow-left"></i>
+        Quay lại
+    </a>
+}
+
+<div class="row justify-content-center">
+    <div class="col-12">
+        <div class="card card-primary card-outline">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-box-seam me-2"></i>
+                    Thông tin mặt hàng
+                </h5>
+            </div>
+
+            <div class="card-body">
+                <form id="formEdit" method="post" enctype="multipart/form-data" action="~/Product/SaveData">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="ProductID" />
+                    <input type="hidden" asp-for="Photo" />
+
+                    <div class="row mb-3">
+                        <label class="col-sm-3 col-form-label">Tên mặt hàng</label>
+                        <div class="col-sm-9">
+                            <input asp-for="ProductName" type="text" class="form-control" placeholder="Nhập tên mặt hàng" autofocus />
+                            <span asp-validation-for="ProductName" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-sm-3 col-form-label">Loại hàng</label>
+                        <div class="col-sm-3">
+                            @{
+                                var cats = await SV22T1020494.Admin.SelectListHelper.Categories();
+                            }
+                            <select asp-for="CategoryID" class="form-select" name="CategoryID">
+                            @foreach (var it in cats)
+                            {
+                                var val = it.Value ?? "";
+                                var txt = it.Text ?? "";
+                                if (Model?.CategoryID?.ToString() == val)
+                                {
+                                    <option value="@val" selected>@txt</option>
+                                }
+                                else
+                                {
+                                    <option value="@val">@txt</option>
+                                }
+                            }
+                            </select>
+                            <span data-valmsg-for="CategoryID" class="text-danger"></span>
+                        </div>
+
+                        <label class="col-sm-2 col-form-label text-end">Nhà cung cấp</label>
+                        <div class="col-sm-4">
+                            @{
+                                var sups = await SV22T1020494.Admin.SelectListHelper.Suppliers();
+                            }
+                            <select asp-for="SupplierID" class="form-select" name="SupplierID">
+                            @foreach (var it in sups)
+                            {
+                                var val = it.Value ?? "";
+                                var txt = it.Text ?? "";
+                                if (Model?.SupplierID?.ToString() == val)
+                                {
+                                    <option value="@val" selected>@txt</option>
+                                }
+                                else
+                                {
+                                    <option value="@val">@txt</option>
+                                }
+                            }
+                            </select>
+                            <span data-valmsg-for="SupplierID" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-sm-3 col-form-label">Đơn vị tính</label>
+                        <div class="col-sm-3">
+                            <input asp-for="Unit" type="text" class="form-control" placeholder="cái, hộp, kg..." />
+                            <span data-valmsg-for="Unit" class="text-danger"></span>
+                        </div>
+
+                        <label class="col-sm-2 col-form-label text-end">Giá</label>
+                        <div class="col-sm-4">
+                            <input asp-for="Price" type="text" class="form-control money-input" placeholder="Giá bán" min="0" />
+                            <span data-valmsg-for="Price" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-sm-3 col-form-label">Trạng thái</label>
+                        <div class="col-sm-9">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" asp-for="IsSelling" type="checkbox" id="IsSelling" />
+                                <label class="form-check-label" for="IsSelling">Đang bán</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-sm-3 col-form-label">Ảnh</label>
+                        <div class="col-sm-9">
+                            <input type="file" name="PhotoFile" class="form-control" accept="image/*" data-img-preview="imgPreview" onchange="previewImage(this)" />
+                            <span id="PhotoFileValidation" class="text-danger"></span>
+                            <div class="mt-2">
+                                <img id="imgPreview" src="@(!string.IsNullOrWhiteSpace(Model?.Photo) ? Url.Content("~/images/products/" + Model.Photo) : Url.Content("~/images/products/nophoto.png"))" class="img-thumbnail" style="max-height: 160px;" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-sm-3 col-form-label">Mô tả</label>
+                        <div class="col-sm-9">
+                            <textarea asp-for="ProductDescription" class="form-control" rows="3" placeholder="Nhập mô tả mặt hàng"></textarea>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@{
+    //if (Model.ProductId > 0) {
+    await Html.RenderPartialAsync("ListPhotos", (object)ViewBag.Photos);
+    await Html.RenderPartialAsync("ListAttributes", (object)ViewBag.Attributes);
+    // }
+}
+
+<script>
+    (function(){
+        var form = document.getElementById('formEdit');
+        if (!form) return;
+
+        var nameInput = form.querySelector('input[name="ProductName"]');
+        var nameMsg = form.querySelector('span[asp-validation-for="ProductName"]') || form.querySelector('span[data-valmsg-for="ProductName"]');
+        var catSelect = form.querySelector('select[name="CategoryID"]');
+        var catMsg = form.querySelector('span[asp-validation-for="CategoryID"]') || form.querySelector('span[data-valmsg-for="CategoryID"]');
+        var supSelect = form.querySelector('select[name="SupplierID"]');
+        var supMsg = form.querySelector('span[asp-validation-for="SupplierID"]') || form.querySelector('span[data-valmsg-for="SupplierID"]');
+        var fileInput = form.querySelector('input[name="PhotoFile"]');
+        var fileMsg = document.getElementById('PhotoFileValidation');
+        var unitInput = form.querySelector('input[name="Unit"]');
+        var unitMsg = form.querySelector('span[asp-validation-for="Unit"]') || form.querySelector('span[data-valmsg-for="Unit"]');
+        var priceInput = form.querySelector('input[name="Price"]');
+        var priceMsg = form.querySelector('span[asp-validation-for="Price"]') || form.querySelector('span[data-valmsg-for="Price"]');
+
+        function setMsg(el, text){
+            if(!el) return;
+            el.textContent = text;
+            el.classList.add('text-danger');
+        }
+        function clearMsg(el){
+            if(!el) return;
+            el.textContent = '';
+            el.classList.remove('text-danger');
+        }
+
+        form.addEventListener('submit', function(e){
+            var firstInvalid = null;
+            // Product name
+            if (!nameInput || !nameInput.value || nameInput.value.trim() === ''){
+                setMsg(nameMsg, 'Vui lòng nhập tên mặt hàng');
+                firstInvalid = firstInvalid || nameInput;
+            } else {
+                clearMsg(nameMsg);
+            }
+
+            // Category
+            var catVal = catSelect ? (catSelect.value || '') : '';
+            if (!catVal || catVal === '0'){
+                setMsg(catMsg, 'Vui lòng chọn loại hàng');
+                firstInvalid = firstInvalid || catSelect;
+            } else {
+                clearMsg(catMsg);
+            }
+
+            // Supplier
+            var supVal = supSelect ? (supSelect.value || '') : '';
+            if (!supVal || supVal === '0'){
+                setMsg(supMsg, 'Vui lòng chọn nhà cung cấp');
+                firstInvalid = firstInvalid || supSelect;
+            } else {
+                clearMsg(supMsg);
+            }
+
+            // Photo file (optional when editing existing product, but required for new product)
+            if (fileInput){
+                // if this is a create (ProductID == 0) then require a file, otherwise optional
+                var prodIdEl = form.querySelector('input[name="ProductID"]');
+                var prodId = prodIdEl ? (prodIdEl.value || '0') : '0';
+                if (prodId === '0'){
+                    if (!fileInput.files || fileInput.files.length === 0){
+                        setMsg(fileMsg, 'Vui lòng chọn ảnh');
+                        firstInvalid = firstInvalid || fileInput;
+                    } else {
+                        clearMsg(fileMsg);
+                    }
+                }
+
+            // Unit
+            if (unitInput){
+                if (!unitInput.value || unitInput.value.trim() === ''){
+                    setMsg(unitMsg, 'Vui lòng nhập đơn vị tính');
+                    firstInvalid = firstInvalid || unitInput;
+                } else {
+                    clearMsg(unitMsg);
+                }
+            }
+
+            // Price (must be numeric and > 0)
+            if (priceInput){
+                var raw = priceInput.value || '';
+                // AutoNumeric uses '.' as thousand separator and ',' as decimal; normalize
+                var normalized = raw.replace(/\./g, '').replace(/,/g, '.');
+                var num = parseFloat(normalized);
+                if (isNaN(num) || num <= 0){
+                    setMsg(priceMsg, 'Vui lòng nhập giá hợp lệ lớn hơn 0');
+                    firstInvalid = firstInvalid || priceInput;
+                } else {
+                    clearMsg(priceMsg);
+                }
+            }
+            }
+
+            if (firstInvalid){
+                e.preventDefault();
+                try{ firstInvalid.focus(); }catch(ex){}
+                return false;
+            }
+        });
+
+        // clear messages on input/change
+        if (nameInput){
+            nameInput.addEventListener('input', function(){ if (this.value && this.value.trim() !== '') clearMsg(nameMsg); });
+        }
+        if (catSelect){
+            catSelect.addEventListener('change', function(){ if (this.value && this.value !== '0') clearMsg(catMsg); });
+        }
+        if (supSelect){
+            supSelect.addEventListener('change', function(){ if (this.value && this.value !== '0') clearMsg(supMsg); });
+        }
+        if (fileInput){
+            fileInput.addEventListener('change', function(){ if (this.files && this.files.length > 0) clearMsg(fileMsg); });
+        }
+        if (unitInput){
+            unitInput.addEventListener('input', function(){ if (this.value && this.value.trim() !== '') clearMsg(unitMsg); });
+        }
+        if (priceInput){
+            priceInput.addEventListener('input', function(){ if (this.value && this.value.trim() !== '') clearMsg(priceMsg); });
+        }
+    })();
+
+    // image preview helper: sets preview and clears hidden Photo when a new file is chosen
+    function previewImage(input){
+        try{
+            var fileInput = input;
+            var img = document.getElementById('imgPreview');
+            if (!img) return;
+            // store original src so we can restore if file removed
+            if (!img.getAttribute('data-original-src')) img.setAttribute('data-original-src', img.src || '');
+
+            if (fileInput.files && fileInput.files.length > 0){
+                var reader = new FileReader();
+                reader.onload = function(e){ img.src = e.target.result; };
+                reader.readAsDataURL(fileInput.files[0]);
+                // clear hidden Photo value so server knows a new file is uploaded
+                var hidden = document.querySelector('input[name="Photo"]');
+                if (hidden) hidden.value = '';
+            } else {
+                // no file selected, restore original image
+                img.src = img.getAttribute('data-original-src') || img.src;
+            }
+        }catch(ex){ console && console.warn && console.warn(ex); }
+    }
+</script>

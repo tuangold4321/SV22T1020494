@@ -1,0 +1,112 @@
+﻿@{
+    ViewData["Title"] = "Account Info";
+    var customer = ViewBag.Customer;
+}
+
+@await Html.PartialAsync("_Header")
+
+@{
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString()?.ToLowerInvariant() ?? "";
+    string linkStyle(string act) => "color:#5b7c99;text-decoration:none;" + (currentAction == act ? "font-weight:700;" : "");
+    string linkClass(string act) => "account-link" + (currentAction == act ? " active" : "");
+}
+
+<div style="max-width:1280px;margin:24px auto;padding:16px;display:grid;grid-template-columns:260px 1fr;gap:24px;align-items:start;">
+    <aside class="account-sidebar" style="background:#fff;padding:16px;border:1px solid #e0e0e0;border-radius:6px;align-self:start;min-width:260px;">
+        <h3 style="font-size:16px;margin-bottom:12px;color:#2c3e50;">Quản lý tài khoản</h3>
+        <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;">
+            <li><a href="@Url.Action("AccountInfo","Account")" class='@linkClass("accountinfo") tab-link' style="@linkStyle("accountinfo")">Thông tin tài khoản</a></li>
+            <li><a href="@Url.Action("Order","Account")" class='@linkClass("order")' style="@linkStyle("order")">Xem đơn hàng</a></li>
+            <li><a href="@Url.Action("ChangePassword","Account")" class='@linkClass("changepassword")' style="@linkStyle("changepassword")">Đổi mật khẩu</a></li>
+        </ul>
+    </aside>
+
+    <section style="background:#fff;padding:16px;border:1px solid #e0e0e0;border-radius:6px;">
+        <div id="tab-info">
+            <h3 style="margin-top:0;color:#2c3e50;">Thông tin tài khoản</h3>
+            @if (TempData["AccountMsg"] != null)
+            {
+                <div style="color:#2e7d32;margin-bottom:12px;font-weight:600;">@TempData["AccountMsg"]</div>
+            }
+            <form method="post" asp-action="UpdateProfile">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div>
+                        <label style="display:block;margin-bottom:6px;color:#2c3e50;">Họ và tên</label>
+                        <input name="customerName" value="@customer.CustomerName" class="form-control" style="width:100%;padding:10px;border:1px solid #e6ecf0;border-radius:4px;background:#fafafa;" />
+                    </div>
+                    <div>
+                        <label style="display:block;margin-bottom:6px;color:#2c3e50;">Tên liên hệ</label>
+                        <input name="contactName" value="@customer.ContactName" class="form-control" style="width:100%;padding:10px;border:1px solid #e6ecf0;border-radius:4px;background:#fafafa;" />
+                    </div>
+                    <div>
+                        <label style="display:block;margin-bottom:6px;color:#2c3e50;">Email</label>
+                        <input value="@customer.Email" disabled class="form-control" style="width:100%;padding:10px;border:1px solid #e6ecf0;border-radius:4px;background:#f5f5f5;" />
+                    </div>
+                    <div>
+                        <label style="display:block;margin-bottom:6px;color:#2c3e50;">Điện thoại</label>
+                        <input name="phone" value="@customer.Phone" class="form-control" style="width:100%;padding:10px;border:1px solid #e6ecf0;border-radius:4px;background:#fafafa;" />
+                    </div>
+                    <div>
+                        <label style="display:block;margin-bottom:6px;color:#2c3e50;">Tỉnh/Thành</label>
+                        <select name="province" class="form-control" style="width:100%;padding:10px;border:1px solid #e6ecf0;border-radius:4px;background:#fafafa;">
+                            @{
+                                var provs = ViewBag.Provinces as IEnumerable<SV22T1020494.Models.DataDictionary.Province> ?? Enumerable.Empty<SV22T1020494.Models.DataDictionary.Province>();
+                                if (!provs.Any())
+                                {
+                                    <option value="">-- Chọn Tỉnh/Thành --</option>
+                                }
+                                foreach (var p in provs)
+                                {
+                                    var isSel = string.Equals(p.ProvinceName, (customer?.Province ?? string.Empty), System.StringComparison.OrdinalIgnoreCase);
+                                    if (isSel)
+                                    {
+                                        <option selected value="@p.ProvinceName">@p.ProvinceName</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@p.ProvinceName">@p.ProvinceName</option>
+                                    }
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block;margin-bottom:6px;color:#2c3e50;">Địa chỉ</label>
+                        <input name="address" value="@customer.Address" class="form-control" style="width:100%;padding:10px;border:1px solid #e6ecf0;border-radius:4px;background:#fafafa;" />
+                    </div>
+                </div>
+
+                <div style="margin-top:12px;display:flex;gap:12px;">
+                    <button type="submit" class="btn-account" style="padding:10px 16px;background:#5b7c99;color:white;border:none;border-radius:4px;">Lưu</button>
+                </div>
+            </form>
+        </div>
+    </section>
+</div>
+
+@await Html.PartialAsync("_Footer")
+
+<style>
+    .btn-account{transition:all .15s ease}
+    .btn-account:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(44,62,80,0.06)}
+    .account-sidebar { position:relative; }
+    .account-sidebar .account-link { display:block; padding:6px 8px 6px 12px; position:relative; color:inherit; transition:color .12s ease; }
+    .account-sidebar .account-link::before { content:""; position:absolute; left:0; top:8px; bottom:8px; width:4px; background:transparent; border-radius:2px; transition:background .12s ease, transform .12s ease; transform:scaleY(0); transform-origin:center; }
+    .account-sidebar .account-link:hover::before { background:#5b7c99; transform:scaleY(1); }
+    .account-sidebar .account-link.active::before { background:#5b7c99; transform:scaleY(1); }
+    .account-sidebar .account-link.active { font-weight:700; color:#2c3e50; }
+</style>
+<script>
+    document.querySelectorAll('.tab-link').forEach(el => {
+        el.addEventListener('click', function(e) {
+            var href = this.getAttribute('href') || '';
+            if (!href.startsWith('#')) {
+                return;
+            }
+            e.preventDefault();
+            var target = href.replace('#','');
+            document.getElementById('tab-info').style.display = target === 'tab-info' ? 'block' : 'none';
+            window.location.hash = target;
+        });
+    });
+</script>

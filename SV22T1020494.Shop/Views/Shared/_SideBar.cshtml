@@ -1,0 +1,131 @@
+﻿@{
+    var action = ViewContext.RouteData.Values["action"]?.ToString()?.ToLowerInvariant();
+    var isSearch = action == "search";
+
+    var currentQ = Context.Request.Query["q"].ToString();
+    var currentSort = Context.Request.Query["sort"].ToString();
+    var selectedCategories = Context.Request.Query["categories"]; // may contain multiple
+
+    var categories = (ViewBag.Categories as IEnumerable<SV22T1020494.Models.Catalog.Category>) ?? new List<SV22T1020494.Models.Catalog.Category>();
+}
+
+<style>
+    .sidebar-category-link { color:#7f8c8d; text-decoration:none; display:flex; justify-content:space-between; align-items:center; padding:6px 8px; border-radius:6px; transition: background 0.15s, color 0.15s, transform 0.12s; }
+    .sidebar-category-link:hover { background:#f2f6f9; color:#2c3e50; transform: translateX(4px); }
+</style>
+
+    <!-- SIDEBAR CONTENT: header + list; outer container provided by calling view -->
+    <div style="font-size: 14px; font-weight: 600; color: #2c3e50; margin-bottom: 12px;">Theo Loại Hàng</div>
+
+    @if (isSearch)
+    {
+        <div>
+            <ul style="list-style: none; display: flex; flex-direction: column; gap: 8px; padding-left:0; margin:0;">
+                @{
+                    if (categories.Any())
+                    {
+                        foreach (var cat in categories.Take(50))
+                        {
+                            var isChecked = selectedCategories.Contains(cat.CategoryID.ToString());
+                            <li style="font-size: 13px; display:flex; align-items:center; justify-content:space-between;">
+                                <label class="category-label" style="display:flex; align-items:center; gap:8px; color:#7f8c8d; cursor:pointer;">
+                                    <input type="checkbox" class="category-filter" name="categories" value="@cat.CategoryID" @(isChecked ? "checked" : "") />
+                                    <span>@cat.CategoryName</span>
+                                </label>
+                                @* count removed *@
+                            </li>
+                        }
+                    }
+                }
+            </ul>
+            @* Suppliers section (only for search page) *@
+            @{
+                var suppliers = ViewBag.Suppliers as IEnumerable<SV22T1020494.Models.Partner.Supplier> ?? new List<SV22T1020494.Models.Partner.Supplier>();
+                var selectedSupplier = (ViewBag.SelectedSupplier as int?) ?? 0;
+            }
+            <div style="margin-top:16px;">
+                <div style="font-size:14px;font-weight:600;color:#2c3e50;margin-bottom:8px;">Theo Nhà Cung Cấp</div>
+                <ul style="list-style:none;padding-left:0;margin:0;display:flex;flex-direction:column;gap:8px;">
+                    @foreach(var s in suppliers.Take(50))
+                    {
+                        var sel = (s.SupplierID == selectedSupplier);
+                        <li style="font-size:13px;">
+                            <label class="supplier-label" style="display:flex;align-items:center;gap:8px;color:#7f8c8d;cursor:pointer;">
+                                <input type="checkbox" class="supplier-filter" value="@s.SupplierID" @(sel? "checked":"") />
+                                <span>@s.ContactName</span>
+                            </label>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+        <script>
+            (function(){
+                function buildSearchUrl(selectedCategory, selectedSupplier){
+                    var params = new URLSearchParams(window.location.search);
+                    // preserve q and sort automatically by reusing existing params
+                    // remove existing categories and supplier
+                    params.delete('categories');
+                    params.delete('supplier');
+                    if (selectedCategory) params.append('categories', selectedCategory);
+                    if (selectedSupplier) params.append('supplier', selectedSupplier);
+                    var qs = params.toString();
+                    return '/Home/Search' + (qs ? ('?' + qs) : '');
+                }
+
+                // single-select behavior for categories
+                document.querySelectorAll('.category-filter').forEach(function(cb){
+                    cb.addEventListener('change', function(){
+                        if (this.checked){
+                            // uncheck others
+                            document.querySelectorAll('.category-filter').forEach(function(o){ if (o !== cb) o.checked = false; });
+                            var cat = this.value;
+                            var supp = (document.querySelector('.supplier-filter:checked') || {}).value || null;
+                            window.location.href = buildSearchUrl(cat, supp);
+                        } else {
+                            // none selected -> show all
+                            var supp = (document.querySelector('.supplier-filter:checked') || {}).value || null;
+                            window.location.href = buildSearchUrl(null, supp);
+                        }
+                    });
+                });
+
+                // single-select behavior for suppliers
+                document.querySelectorAll('.supplier-filter').forEach(function(cb){
+                    cb.addEventListener('change', function(){
+                        if (this.checked){
+                            // uncheck others
+                            document.querySelectorAll('.supplier-filter').forEach(function(o){ if (o !== cb) o.checked = false; });
+                            var supp = this.value;
+                            var cat = (document.querySelector('.category-filter:checked') || {}).value || null;
+                            window.location.href = buildSearchUrl(cat, supp);
+                        } else {
+                            var cat = (document.querySelector('.category-filter:checked') || {}).value || null;
+                            window.location.href = buildSearchUrl(cat, null);
+                        }
+                    });
+                });
+            })();
+        </script>
+    }
+    else
+    {
+        <ul style="list-style: none; display: flex; flex-direction: column; gap: 8px; padding-left:0; margin:0;">
+            @{
+                if (categories.Any())
+                {
+                    foreach (var cat in categories.Take(8))
+                    {
+                        var href = "/Home/Search?categories=" + cat.CategoryID;
+                        if (!string.IsNullOrWhiteSpace(currentQ)) href += "&q=" + System.Net.WebUtility.UrlEncode(currentQ);
+                        if (!string.IsNullOrWhiteSpace(currentSort)) href += "&sort=" + System.Net.WebUtility.UrlEncode(currentSort);
+                        <li style="font-size: 13px;">
+                            <a href="@href" class="sidebar-category-link">
+                                <span>@cat.CategoryName</span>
+                            </a>
+                        </li>
+                    }
+                }
+            }
+        </ul>
+    }

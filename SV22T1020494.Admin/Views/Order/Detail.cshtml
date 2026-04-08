@@ -1,0 +1,365 @@
+﻿@using System.Globalization
+@model SV22T1020494.Models.Sales.OrderViewInfo
+@{
+    ViewBag.Title = "Chi tiết đơn hàng";
+
+    var isNew = Model?.Status == SV22T1020494.Models.Sales.OrderStatusEnum.New;
+    var isAccepted = Model?.Status == SV22T1020494.Models.Sales.OrderStatusEnum.Accepted;
+    var isShipping = Model?.Status == SV22T1020494.Models.Sales.OrderStatusEnum.Shipping;
+    var isCompleted = Model?.Status == SV22T1020494.Models.Sales.OrderStatusEnum.Completed;
+    var isCancelledOrRejected = Model?.Status == SV22T1020494.Models.Sales.OrderStatusEnum.Cancelled || Model?.Status == SV22T1020494.Models.Sales.OrderStatusEnum.Rejected;
+
+    bool canAccept = isNew;
+    bool canShip = isAccepted;
+    bool canFinish = isShipping;
+    bool canCancel = !isCompleted && !isCancelledOrRejected;
+    bool canReject = !isCompleted && !isCancelledOrRejected;
+}
+
+@section PageToolBar {
+    <div class="btn-group">
+        <button type="button"
+                class="btn btn-primary dropdown-toggle"
+                data-bs-toggle="dropdown">
+            <i class="bi bi-gear me-1"></i>
+            Xử lý đơn hàng
+        </button>
+        <ul class="dropdown-menu">
+            <li>
+                @if (canAccept)
+                {
+                    <a class="dropdown-item open-modal" href="/Order/Accept/@Model?.OrderID">Duyệt đơn hàng</a>
+                }
+                else
+                {
+                    <a class="dropdown-item disabled" href="#" aria-disabled="true" tabindex="-1">Duyệt đơn hàng</a>
+                }
+            </li>
+            <li>
+                @if (canShip)
+                {
+                    <a class="dropdown-item open-modal" href="/Order/Shipping/@Model?.OrderID">Chuyển giao hàng</a>
+                }
+                else
+                {
+                    <a class="dropdown-item disabled" href="#" aria-disabled="true" tabindex="-1">Chuyển giao hàng</a>
+                }
+            </li>
+            <li>
+                @if (canFinish)
+                {
+                    <a class="dropdown-item open-modal" href="/Order/Finish/@Model?.OrderID">Hoàn tất đơn hàng</a>
+                }
+                else
+                {
+                    <a class="dropdown-item disabled" href="#" aria-disabled="true" tabindex="-1">Hoàn tất đơn hàng</a>
+                }
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+                @if (canCancel)
+                {
+                    <a class="dropdown-item text-danger open-modal" href="/Order/Cancel/@Model?.OrderID">Hủy đơn hàng</a>
+                }
+                else
+                {
+                    <a class="dropdown-item disabled text-muted" href="#" aria-disabled="true" tabindex="-1">Hủy đơn hàng</a>
+                }
+            </li>
+            <li>
+                @if (canReject)
+                {
+                    <a class="dropdown-item text-danger open-modal" href="/Order/Reject/@Model?.OrderID">Từ chối đơn hàng</a>
+                }
+                else
+                {
+                    <a class="dropdown-item disabled text-muted" href="#" aria-disabled="true" tabindex="-1">Từ chối đơn hàng</a>
+                }
+            </li>
+        </ul>
+    </div>
+
+    <a href="/Order/Delete/@Model?.OrderID"
+       class="btn btn-danger ms-1 open-modal">
+        <i class="bi bi-trash"></i>
+        Xóa
+    </a>
+
+    <a href="/Order" class="btn btn-secondary ms-1">
+        <i class="bi bi-arrow-left"></i>
+        Quay lại
+    </a>
+}
+
+<!-- TRẠNG THÁI ĐƠN HÀNG -->
+@{
+    var statusAlert = Model?.Status switch
+    {
+        SV22T1020494.Models.Sales.OrderStatusEnum.New => new { Color = "warning", Text = "Chờ duyệt", Icon = "hourglass-split" },
+        SV22T1020494.Models.Sales.OrderStatusEnum.Accepted => new { Color = "info", Text = "Đã duyệt", Icon = "check-circle" },
+        SV22T1020494.Models.Sales.OrderStatusEnum.Shipping => new { Color = "primary", Text = "Đang giao", Icon = "truck" },
+        SV22T1020494.Models.Sales.OrderStatusEnum.Completed => new { Color = "success", Text = "Hoàn tất", Icon = "check-circle-fill" },
+        SV22T1020494.Models.Sales.OrderStatusEnum.Cancelled => new { Color = "secondary", Text = "Bị hủy", Icon = "x-circle" },
+        SV22T1020494.Models.Sales.OrderStatusEnum.Rejected => new { Color = "danger", Text = "Bị từ chối", Icon = "x-circle-fill" },
+        _ => new { Color = "secondary", Text = "Không xác định", Icon = "question-circle" }
+    };
+}
+
+<div class="alert alert-@statusAlert.Color d-flex align-items-center mb-3">
+    <i class="bi bi-@statusAlert.Icon fs-4 me-2"></i>
+    <div>
+        <strong>Trạng thái đơn hàng:</strong>
+        @statusAlert.Text
+        @if (Model?.AcceptTime.HasValue == true)
+        {
+            <text>lúc <b>@Model.AcceptTime?.ToString("dd/MM/yyyy HH:mm")</b></text>
+        }
+    </div>
+</div>
+
+<!-- THÔNG TIN ĐƠN HÀNG -->
+<div class="card card-primary card-outline mb-3">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-receipt me-2"></i>
+            Thông tin đơn hàng
+        </h5>
+    </div>
+
+    <div class="card-body ps-4 pe-4">
+        <div class="row mb-2">
+            <div class="col-md-3 fw-bold">Mã đơn hàng</div>
+            <div class="col-md-3">@Model?.OrderID</div>
+
+            <div class="col-md-3 fw-bold">Ngày lập</div>
+            <div class="col-md-3">@Model?.OrderTime.ToString("dd/MM/yyyy HH:mm")</div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-3 fw-bold">Nhân viên phụ trách</div>
+            <div class="col-md-3">@Model?.EmployeeName</div>
+
+            <div class="col-md-3 fw-bold">Ngày nhận đơn</div>
+            <div class="col-md-3">@Model?.AcceptTime?.ToString("dd/MM/yyyy HH:mm")</div>
+        </div>
+    </div>
+</div>
+
+<!-- THÔNG TIN KHÁCH HÀNG -->
+<div class="card card-info card-outline mb-3">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-person me-2"></i>
+            Thông tin khách hàng
+        </h5>
+    </div>
+
+    <div class="card-body ps-4 pe-4">
+        <div class="row mb-2">
+            <div class="col-md-3 fw-bold">Khách hàng</div>
+            <div class="col-md-3">@Model?.CustomerName</div>
+
+            <div class="col-md-3 fw-bold">Tên giao dịch</div>
+            <div class="col-md-3">@Model?.CustomerContactName</div>
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-md-3 fw-bold">Email</div>
+            <div class="col-md-9">@Model?.CustomerEmail</div>
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-md-3 fw-bold">Điện thoại</div>
+            <div class="col-md-9">@Model?.CustomerPhone</div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-3 fw-bold">Địa chỉ</div>
+            <div class="col-md-9">@Model?.CustomerAddress</div>
+        </div>
+    </div>
+</div>
+
+<!-- THÔNG TIN GIAO HÀNG -->
+<div class="card card-success card-outline mb-3">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-truck me-2"></i>
+            Thông tin giao hàng
+        </h5>
+    </div>
+
+    <div class="card-body ps-4 pe-4">
+        <div class="row mb-2">
+            <div class="col-md-3 fw-bold">Người giao hàng</div>
+            <div class="col-md-3">@Model?.ShipperName</div>
+
+            <div class="col-md-3 fw-bold">Điện thoại</div>
+            <div class="col-md-3">@Model?.ShipperPhone</div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-3 fw-bold">Địa chỉ giao hàng</div>
+            <div class="col-md-9">@Model?.DeliveryAddress</div>
+        </div>
+    </div>
+</div>
+
+<!-- DANH SÁCH MẶT HÀNG -->
+<div class="card card-secondary card-outline">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-box-seam me-2"></i>
+            Danh sách mặt hàng
+        </h5>
+    </div>
+
+    <div class="card-body">
+        @{ 
+            var vi = CultureInfo.GetCultureInfo("vi-VN");
+            var itemList = Model?.OrderDetails ?? new List<SV22T1020494.Models.Sales.OrderDetailViewInfo>();
+            decimal totalAmount = itemList.Sum(x => x.Quantity * x.SalePrice);
+            int totalItems = (int?)ViewBag.TotalItems ?? itemList.Count;
+            int currentPage = (int?)ViewBag.CurrentPage ?? 1;
+            int totalPages = (int?)ViewBag.TotalPages ?? 1;
+        }
+
+        @if (itemList.Count > 0)
+        {
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle mb-0">
+                    <thead class="table-secondary text-center">
+                        <tr>
+                            <th>Tên hàng</th>
+                            <th style="width:80px">ĐVT</th>
+                            <th style="width:80px">Số lượng</th>
+                            <th style="width:120px">Giá</th>
+                            <th style="width:120px">Thành tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in itemList)
+                        {
+                            <tr>
+                                <td>@item.ProductName</td>
+                                <td class="text-center">@item.Unit</td>
+                                <td class="text-center">@item.Quantity</td>
+                                <td class="text-end">@item.SalePrice.ToString("N0", vi)</td>
+                                <td class="text-end">@((item.Quantity * item.SalePrice).ToString("N0", vi))</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="4" class="text-end">Tổng cộng</th>
+                            <th class="text-end">@totalAmount.ToString("N0", vi)</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-inbox fs-1"></i>
+                <p>Không có mặt hàng nào trong đơn hàng này</p>
+            </div>
+        }
+    </div>
+
+    @if (itemList.Count > 0 && totalPages > 1)
+    {
+        <div class="card-footer">
+            <div class="mb-2 text-muted">
+                Danh sách này có <strong>@totalItems</strong> mặt hàng
+            </div>
+            
+            <!-- Pagination -->
+            <ul class="pagination justify-content-center">
+                @if (currentPage > 1)
+                {
+                    <li class="page-item">
+                        <a class="page-link" href="/Order/Detail/@Model?.OrderID?page=1">
+                            « Đầu
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="/Order/Detail/@Model?.OrderID?page=@(currentPage - 1)">
+                            ‹ Trước
+                        </a>
+                    </li>
+                }
+                else
+                {
+                    <li class="page-item disabled">
+                        <span class="page-link">« Đầu</span>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link">‹ Trước</span>
+                    </li>
+                }
+
+                @for (int p = 1; p <= totalPages; p++)
+                {
+                    @if (p == currentPage)
+                    {
+                        <li class="page-item active">
+                            <span class="page-link">@p</span>
+                        </li>
+                    }
+                    else if (p <= 2 || p > totalPages - 2 || (p > currentPage - 2 && p < currentPage + 2))
+                    {
+                        <li class="page-item">
+                            <a class="page-link" href="/Order/Detail/@Model?.OrderID?page=@p">@p</a>
+                        </li>
+                    }
+                    else if (p == 3 && currentPage > 4)
+                    {
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    }
+                }
+
+                @if (currentPage < totalPages)
+                {
+                    <li class="page-item">
+                        <a class="page-link" href="/Order/Detail/@Model?.OrderID?page=@(currentPage + 1)">
+                            Tiếp ›
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="/Order/Detail/@Model?.OrderID?page=@totalPages">
+                            Cuối »
+                        </a>
+                    </li>
+                }
+                else
+                {
+                    <li class="page-item disabled">
+                        <span class="page-link">Tiếp ›</span>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link">Cuối »</span>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+    else if (itemList.Count > 0)
+    {
+        <div class="card-footer bg-light">
+            <div class="text-muted small">
+                Tổng cộng: <strong>@totalItems</strong> mặt hàng
+            </div>
+        </div>
+    }
+</div>
+
+@section Styles {
+    <style>
+        .card-body .row {
+            border-bottom: 1px dotted #646464;
+        }
+    </style>
+}

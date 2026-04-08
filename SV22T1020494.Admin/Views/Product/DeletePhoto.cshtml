@@ -1,0 +1,18 @@
+﻿@model SV22T1020494.Models.Catalog.ProductPhoto
+@{
+    Layout = null;
+}
+<div class="modal-body text-center py-3">
+    @{ var imgSrc = Url.Content("~/images/products/" + (string.IsNullOrWhiteSpace(Model?.Photo) ? "demo.png" : Model.Photo)); }
+    <img src="@imgSrc" class="img-fluid mb-3" style="max-height:140px;" />
+    <p class="mb-0">Bạn có muốn xoá ảnh này chứ?</p>
+</div>
+<div class="modal-footer">
+    <form method="post" action="~/Product/DeletePhoto" class="w-100 d-flex justify-content-end">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@ViewBag.ProductID" />
+        <input type="hidden" name="PhotoId" value="@Model.PhotoID" />
+        <button type="submit" class="btn btn-danger me-2">Xoá</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Huỷ</button>
+    </form>
+</div>

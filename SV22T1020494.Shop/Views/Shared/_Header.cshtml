@@ -1,0 +1,200 @@
+﻿@{
+    var cartCount = ViewBag.CartCount ?? 0;
+    var wishlistCount = ViewBag.WishlistCount ?? 0;
+    var displayName = User?.FindFirst("DisplayName")?.Value ?? User?.Identity?.Name ?? string.Empty;
+    var isAuth = User?.Identity?.IsAuthenticated ?? false;
+}
+
+<header style="background: #fff; border-bottom: 1px solid #e0e0e0; padding: 16px 0; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+    <div style="max-width: 1400px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; gap: 24px; position:relative;">
+        <!-- Left: logo -->
+        <div style="display:flex; align-items:center; gap:24px;">
+            <a href="~/Home" style="font-size: 20px; font-weight: 700; color: #5b7c99; text-decoration: none; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px;">
+                Tuấn Shop
+            </a>
+        </div>
+
+        <!-- Center: search (takes available space) -->
+        <div style="flex: 1; display:flex; justify-content:center;">
+            <form action="~/Home/Search" method="get" style="width: 480px; min-width: 240px;">
+                <div style="display: flex; align-items: center; background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 24px; padding: 8px 12px;">
+                    <input type="text" name="q" id="searchInput" placeholder="Nhập tên hàng cần tìm..." value="@Context.Request.Query["q"]" style="flex: 1; border: none; background: transparent; font-size: 13px; outline: none; color: #2c3e50; padding-left:8px;" />
+                    <button type="submit" style="background: none; border: none; cursor: pointer; color: #7f8c8d; padding: 4px 6px; font-size: 18px;">🔍</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Right: icons / account -->
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <a id="cartAnchor" href="~/Cart/Index" style="position: relative; color: #2c3e50; text-decoration: none; font-size: 18px; display: flex; align-items: center; cursor: pointer; transition: color 0.2s;">
+                🛒
+                <span id="cartCount" style="position: absolute; top: -8px; right: -8px; background: #ff6b6b; color: white; font-size: 11px; font-weight: 600; min-width: 18px; height: 18px; border-radius: 50%; display: @(cartCount > 0 ? "flex" : "none"); align-items: center; justify-content: center;">@cartCount</span>
+            </a>
+
+            @if (!isAuth)
+            {
+                <a href="~/Account/Login" class="action-indicator" style="padding: 8px 16px; font-size: 13px; font-weight: 600; border: 1px solid #5b7c99; background: transparent; color: #5b7c99; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; transition: all 0.2s; border-radius: 4px;">Đăng nhập</a>
+                <a href="~/Account/Register" class="action-indicator btn primary" style="padding: 8px 16px; font-size: 13px; font-weight: 600; background: #5b7c99; color: white; border: none; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; transition: all 0.2s; border-radius: 4px;">Đăng ký</a>
+            }
+            else
+            {
+                <div style="position:relative;">
+                    <button id="accountBtn" type="button" class="action-indicator" style="padding: 8px 12px; font-size:13px; background:transparent; border:1px solid #e0e0e0; border-radius:4px; cursor:pointer;">@displayName ▾</button>
+                    <div id="accountMenu" style="display:none;position:absolute;right:0;top:38px;background:white;border:1px solid #e0e0e0;border-radius:6px;box-shadow:0 6px 12px rgba(0,0,0,0.08);min-width:160px;">
+                        <a href="~/Account/AccountInfo" class="action-indicator" style="display:block;padding:10px 12px;color:#2c3e50;text-decoration:none;border-bottom:1px solid #f0f0f0;">Quản lý tài khoản</a>
+                        <a href="~/Account/Logout" class="action-indicator" style="display:block;padding:10px 12px;color:#2c3e50;text-decoration:none;">Đăng xuất</a>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Toast container placed inside header so it moves with sticky header -->
+        <div id="toastContainer" style="position:absolute; top:100%; right:24px; z-index:1100; display:flex; flex-direction:column; gap:8px;"></div>
+    </div>
+</header>
+
+<style>
+    /* Global-ish button / action hover indicator used by header and pages that include header */
+    .action-indicator, .btn {
+        transition: all .15s ease;
+        position: relative;
+        will-change: transform, box-shadow;
+    }
+
+    /* subtle underline / indicator that grows on hover */
+    .action-indicator::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -8px;
+        height: 3px;
+        background: transparent;
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform .15s ease, background .15s ease;
+        border-radius: 2px;
+        pointer-events: none;
+    }
+
+    .action-indicator:hover::after { background:#5b7c99; transform: scaleX(1); }
+
+    /* lift + shadow on hover for buttons */
+    .action-indicator:hover, .btn:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(44,62,80,0.06); }
+
+    /* primary / danger defaults (header-provided fallback for pages without page-level css) */
+    .btn.primary { background:#f26b21; color:white; border:none; }
+    .btn.primary:hover { background:#d65b1b; }
+    .btn.danger { background:#ff6b6b; color:white; border:none; }
+    .btn.danger:hover { background:#e55b5b; }
+</style>
+
+<script>
+    // expose server auth flag to client (coerce to boolean)
+    window.isAuthenticated = @(User?.Identity?.IsAuthenticated ?? false ? "true" : "false");
+    window.isAuthenticated = (window.isAuthenticated === true || window.isAuthenticated === 'true');
+    // keep account menu toggle
+    document.addEventListener('click', function(e){
+        var btn = document.getElementById('accountBtn');
+        var menu = document.getElementById('accountMenu');
+        if (!btn || !menu) return;
+        if (btn.contains(e.target)) {
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        } else if (!menu.contains(e.target)) {
+            menu.style.display = 'none';
+        }
+    });
+
+    // Cart and toast helpers
+    (function(){
+        function updateBadges() {
+            // cart stored as array of { id, qty }
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            const cartEl = document.getElementById('cartCount');
+            if (!cartEl) return;
+            // compute total quantity
+            const totalQty = cart.reduce((s, item) => s + (item && item.qty ? Number(item.qty) : 0), 0);
+            // only show badge for authenticated users
+            if (window.isAuthenticated && totalQty > 0) {
+                cartEl.style.display = 'flex';
+                cartEl.textContent = totalQty;
+            } else {
+                cartEl.style.display = 'none';
+                cartEl.textContent = '';
+            }
+        }
+
+        function showToast(message, duration = 2000) {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.textContent = message;
+            toast.style.background = '#ff6b6b';
+            toast.style.color = 'white';
+            toast.style.padding = '10px 14px';
+            toast.style.borderRadius = '8px';
+            toast.style.boxShadow = '0 6px 18px rgba(0,0,0,0.12)';
+            toast.style.fontSize = '13px';
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-6px)';
+            toast.style.transition = 'all 0.25s ease';
+            container.appendChild(toast);
+            requestAnimationFrame(()=>{ toast.style.opacity='1'; toast.style.transform='translateY(0)'; });
+            setTimeout(()=>{ toast.style.opacity='0'; toast.style.transform='translateY(-6px)'; setTimeout(()=>container.removeChild(toast),250); }, duration);
+        }
+
+        // expose showToast globally so other scripts can call it
+        window.showToast = showToast;
+
+        // productInfo: optional object { name, price, photo }
+        window.addProductToCart = function(productId, qty = 1, productInfo) {
+            if (!window.isAuthenticated) {
+                showToast('Hãy đăng nhập để thêm vào giỏ hàng!', 2500);
+                return;
+            }
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            // find existing
+            const idx = cart.findIndex(c => Number(c.id) === Number(productId));
+            if (idx >= 0) {
+                cart[idx].qty = Number(cart[idx].qty || 0) + Number(qty);
+                // update snapshot info if provided
+                if (productInfo) {
+                    cart[idx].name = productInfo.name || cart[idx].name;
+                    cart[idx].price = productInfo.price ?? cart[idx].price;
+                    cart[idx].photo = productInfo.photo || cart[idx].photo;
+                }
+                showToast('Cập nhật số lượng trong giỏ', 1200);
+            } else {
+                const entry = { id: Number(productId), qty: Number(qty) };
+                if (productInfo) {
+                    entry.name = productInfo.name;
+                    entry.price = productInfo.price;
+                    entry.photo = productInfo.photo;
+                }
+                cart.push(entry);
+                showToast('Đã thêm mặt hàng vào giỏ', 2000);
+            }
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateBadges();
+        };
+
+        // expose updateBadges globally
+        window.updateBadges = updateBadges;
+
+        // initial update
+        updateBadges();
+    })();
+    // ensure cart icon click redirects to login for anonymous users
+    document.addEventListener('DOMContentLoaded', function(){
+        const cartAnchor = document.getElementById('cartAnchor');
+        if (cartAnchor) {
+            cartAnchor.addEventListener('click', function(e){
+                if (!window.isAuthenticated) {
+                    e.preventDefault();
+                    // show toast instead of redirect when anonymous
+                    showToast('Hãy đăng nhập để dùng giỏ hàng!', 2500);
+                }
+            });
+        }
+    });
+</script>

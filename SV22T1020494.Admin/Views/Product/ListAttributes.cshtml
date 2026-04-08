@@ -1,0 +1,108 @@
+﻿@model List<SV22T1020494.Models.Catalog.ProductAttribute>
+@{
+    Layout = null;
+}
+<div class="row justify-content-center">
+    <div class="col-12">
+        <div class="card card-success card-outline mt-4">
+            <div class="card-header">
+                <div class="row">
+                    <div class="col">
+                        <h6 id="attributes" class="card-title mb-0">
+                            <i class="bi bi-list-check me-2"></i>
+                            Thuộc tính mặt hàng
+                        </h6>
+                    </div>
+                    <div class="col text-end">
+                        @{ var pid = ViewBag.ProductID ?? 0; }
+                        <a class="btn btn-sm btn-primary" href="~/Product/AddAttribute/@pid">
+                            <i class="bi bi-plus"></i>
+                            Thêm thuộc tính
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-1">
+                <table class="table table-bordered table-hover mb-0">
+                    <thead class="table-secondary">
+                        <tr>
+                            <th>Tên thuộc tính</th>
+                            <th>Giá trị</th>
+                            <th style="width:120px" class="text-center">Thứ tự</th>
+                            <th style="width:100px"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Count > 0)
+                        {
+                            foreach (var a in Model)
+                            {
+                                <tr>
+                                    <td>@a.AttributeName</td>
+                                    <td>@a.AttributeValue</td>
+                                    <td class="text-center">@a.DisplayOrder</td>
+                                    <td class="text-center text-nowrap">
+                                        <a class="btn btn-sm btn-primary" href="~/Product/EditAttribute/@ViewBag.ProductID?attributeId=@a.AttributeID">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        @{ var productIdForLink = ViewBag.ProductID ?? 0; }
+                                        <a class="btn btn-sm btn-danger ms-1 open-modal" href="~/Product/DeleteAttribute?id=@productIdForLink&attributeId=@a.AttributeID">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="4" class="text-center">Không có thuộc tính</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation modal for deleting attributes -->
+<div class="modal fade" id="confirmDeleteAttrModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Xác nhận xoá</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Bạn có muốn xoá thuộc tính này chứ?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" id="confirmDeleteAttrBtn">Xoá</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Huỷ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function(){
+        var formToSubmit = null;
+        var modalEl = document.getElementById('confirmDeleteAttrModal');
+        if (!modalEl) return;
+        var bsModal = new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });
+
+        document.querySelectorAll('.btn-delete-attr').forEach(function(btn){
+            btn.addEventListener('click', function(e){
+                var id = this.getAttribute('data-form-id');
+                formToSubmit = document.getElementById(id);
+                bsModal.show();
+            });
+        });
+
+        document.getElementById('confirmDeleteAttrBtn').addEventListener('click', function(){
+            if (formToSubmit) formToSubmit.submit();
+        });
+    })();
+</script>

@@ -1,0 +1,170 @@
+﻿@{
+    ViewData["Title"] = "Xem đơn hàng";
+    var orders = (ViewBag.Orders as IEnumerable<SV22T1020494.Models.Sales.OrderViewInfo>) ?? new List<SV22T1020494.Models.Sales.OrderViewInfo>();
+}
+
+@await Html.PartialAsync("_Header")
+
+@{
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString()?.ToLowerInvariant() ?? "";
+    string linkStyle(string act) => "color:#5b7c99;text-decoration:none;" + (currentAction == act ? "font-weight:700;" : "");
+    string linkClass(string act) => "account-link" + (currentAction == act ? " active" : "");
+}
+
+<div style="max-width:1280px;margin:24px auto;padding:16px;display:grid;grid-template-columns:260px 1fr;gap:24px;align-items:start;">
+    <aside class="account-sidebar" style="background:#fff;padding:16px;border:1px solid #e0e0e0;border-radius:6px;align-self:start;min-width:260px;">
+        <h3 style="font-size:16px;margin-bottom:12px;color:#2c3e50;">Quản lý tài khoản</h3>
+        <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;">
+            <li><a href="@Url.Action("AccountInfo","Account")" class='@linkClass("accountinfo") tab-link' style="@linkStyle("accountinfo")">Thông tin tài khoản</a></li>
+            <li><a href="@Url.Action("Order","Account")" class='@linkClass("order")' style="@linkStyle("order")">Xem đơn hàng</a></li>
+            <li><a href="@Url.Action("ChangePassword","Account")" class='@linkClass("changepassword")' style="@linkStyle("changepassword")">Đổi mật khẩu</a></li>
+        </ul>
+    </aside>
+
+    <section style="background:#fff;padding:16px;border:1px solid #e0e0e0;border-radius:6px;">
+        <h3 style="margin-top:0;color:#2c3e50;">Đơn hàng của bạn</h3>
+
+        @{
+            // determine current tab from query string
+            var qs = Context?.Request?.Query["status"].ToString();
+            var currentStatus = string.IsNullOrWhiteSpace(qs) ? "all" : qs.ToLowerInvariant();
+            var totalCount = orders.Count();
+            var countNew = orders.Count(x => x.Status == SV22T1020494.Models.Sales.OrderStatusEnum.New);
+            var countAccepted = orders.Count(x => x.Status == SV22T1020494.Models.Sales.OrderStatusEnum.Accepted);
+            var countShipping = orders.Count(x => x.Status == SV22T1020494.Models.Sales.OrderStatusEnum.Shipping);
+            var countCompleted = orders.Count(x => x.Status == SV22T1020494.Models.Sales.OrderStatusEnum.Completed);
+            var countCancelled = orders.Count(x => x.Status == SV22T1020494.Models.Sales.OrderStatusEnum.Cancelled);
+            var countRejected = orders.Count(x => x.Status == SV22T1020494.Models.Sales.OrderStatusEnum.Rejected);
+
+            var isAll = currentStatus == "all";
+            var isNew = currentStatus == "new";
+            var isAccepted = currentStatus == "accepted";
+            var isShipping = currentStatus == "shipping";
+            var isCompleted = currentStatus == "completed";
+            var isCancelled = currentStatus == "cancelled";
+            var isRejected = currentStatus == "rejected";
+
+            string baseTabStyle = "text-decoration:none; padding-bottom:8px;";
+            string styleAll = baseTabStyle + (isAll ? " border-bottom:3px solid #f26b21; color:#f26b21;" : " border-bottom:3px solid transparent; color:#7f8c8d;");
+            string styleNew = baseTabStyle + (isNew ? " border-bottom:3px solid #f26b21; color:#f26b21;" : " border-bottom:3px solid transparent; color:#7f8c8d;");
+            string styleAccepted = baseTabStyle + (isAccepted ? " border-bottom:3px solid #f26b21; color:#f26b21;" : " border-bottom:3px solid transparent; color:#7f8c8d;");
+            string styleShipping = baseTabStyle + (isShipping ? " border-bottom:3px solid #f26b21; color:#f26b21;" : " border-bottom:3px solid transparent; color:#7f8c8d;");
+            string styleCompleted = baseTabStyle + (isCompleted ? " border-bottom:3px solid #f26b21; color:#f26b21;" : " border-bottom:3px solid transparent; color:#7f8c8d;");
+            string styleCancelled = baseTabStyle + (isCancelled ? " border-bottom:3px solid #f26b21; color:#f26b21;" : " border-bottom:3px solid transparent; color:#7f8c8d;");
+            string styleRejected = baseTabStyle + (isRejected ? " border-bottom:3px solid #f26b21; color:#f26b21;" : " border-bottom:3px solid transparent; color:#7f8c8d;");
+            // prepare filtered list based on selected tab/status
+            IEnumerable<SV22T1020494.Models.Sales.OrderViewInfo> filteredOrders = orders;
+            if (!isAll)
+            {
+                switch (currentStatus)
+                {
+                    case "new":
+                        filteredOrders = orders.Where(x => x.Status == SV22T1020494.Models.Sales.OrderStatusEnum.New);
+                        break;
+                    case "accepted":
+                        filteredOrders = orders.Where(x => x.Status == SV22T1020494.Models.Sales.OrderStatusEnum.Accepted);
+                        break;
+                    case "shipping":
+                        filteredOrders = orders.Where(x => x.Status == SV22T1020494.Models.Sales.OrderStatusEnum.Shipping);
+                        break;
+                    case "completed":
+                        filteredOrders = orders.Where(x => x.Status == SV22T1020494.Models.Sales.OrderStatusEnum.Completed);
+                        break;
+                    case "cancelled":
+                        filteredOrders = orders.Where(x => x.Status == SV22T1020494.Models.Sales.OrderStatusEnum.Cancelled);
+                        break;
+                    case "rejected":
+                        filteredOrders = orders.Where(x => x.Status == SV22T1020494.Models.Sales.OrderStatusEnum.Rejected);
+                        break;
+                    default:
+                        filteredOrders = orders;
+                        break;
+                }
+            }
+        }
+
+        <div style="margin-top:12px;border-bottom:1px solid #eee;">
+            <nav style="display:flex;gap:24px;padding-bottom:8px;overflow:auto;">
+                <a href="@Url.Action("Order","Account", new { status = "All" })" class="tab-item @(isAll ? "active" : "")" style="@styleAll">Tất cả (@totalCount)</a>
+                <a href="@Url.Action("Order","Account", new { status = "New" })" class="tab-item @(isNew ? "active" : "")" style="@styleNew">Chờ xác nhận (@countNew)</a>
+                <a href="@Url.Action("Order","Account", new { status = "Accepted" })" class="tab-item @(isAccepted ? "active" : "")" style="@styleAccepted">Chờ vận chuyển (@countAccepted)</a>
+                <a href="@Url.Action("Order","Account", new { status = "Shipping" })" class="tab-item @(isShipping ? "active" : "")" style="@styleShipping">Đang giao (@countShipping)</a>
+                <a href="@Url.Action("Order","Account", new { status = "Completed" })" class="tab-item @(isCompleted ? "active" : "")" style="@styleCompleted">Hoàn thành (@countCompleted)</a>
+                <a href="@Url.Action("Order","Account", new { status = "Cancelled" })" class="tab-item @(isCancelled ? "active" : "")" style="@styleCancelled">Đã hủy (@countCancelled)</a>
+                <a href="@Url.Action("Order","Account", new { status = "Rejected" })" class="tab-item @(isRejected ? "active" : "")" style="@styleRejected">Bị từ chối (@countRejected)</a>
+            </nav>
+        </div>
+
+        @if (!filteredOrders.Any())
+        {
+            <div style="padding:40px;text-align:center;color:#7f8c8d;">Bạn chưa có đơn hàng nào.</div>
+        }
+        else
+        {
+            foreach (var o in filteredOrders)
+            {
+                <div style="border:1px solid #f0f0f0;padding:12px;border-radius:6px;margin-bottom:12px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+                        <div>
+                            <div style="font-weight:700;color:#2c3e50;">Đơn hàng #@o.OrderID</div>
+                            <div style="font-size:13px;color:#7f8c8d;margin-top:6px;">@o.OrderTime.ToString("yyyy-MM-dd HH:mm")</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-weight:700;color:#f26b21;">Thành tiền: @($"đ{o.TotalAmount:N0}")</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:12px;border-top:1px dashed #eee;padding-top:12px;">
+                        @if (o.OrderDetails != null && o.OrderDetails.Any())
+                        {
+                            foreach (var d in o.OrderDetails)
+                            {
+                                var img = string.IsNullOrWhiteSpace(d.Photo) ? "/images/default-product.png" : ("/images/products/" + d.Photo);
+                                <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #fafafa;align-items:center;">
+                                    <div style="display:flex;gap:12px;align-items:center;">
+                                        <div style="width:56px;height:56px;border-radius:6px;overflow:hidden;border:1px solid #eee;display:flex;align-items:center;justify-content:center;background:#f2f4f6;">
+                                            <img src="@img" alt="@d.ProductName" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='/images/default-product.png'; this.onerror=null;" />
+                                        </div>
+                                        <div>
+                                            <div style="font-weight:600;">@(!string.IsNullOrWhiteSpace(d.ProductName) ? d.ProductName : ("Sản phẩm #" + d.ProductID))</div>
+                                            <div style="color:#7f8c8d;font-size:13px;">Số lượng: @d.Quantity</div>
+                                        </div>
+                                    </div>
+                                    <div style="font-weight:700;color:#2c3e50;">@($"đ{d.SalePrice:N0}")</div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div style="color:#7f8c8d;padding:8px 0;">Không có chi tiết đơn hàng.</div>
+                        }
+                    </div>
+
+                    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+                        <a href="@Url.Action("OrderStatus","Account", new { id = o.OrderID })" class="btn-account" style="padding:8px 12px;border:1px solid #e0e0e0;border-radius:6px;text-decoration:none;color:#2c3e50;">Xem trạng thái xử lý</a>
+                    </div>
+                </div>
+            }
+        }
+
+    </section>
+</div>
+
+@await Html.PartialAsync("_Footer")
+
+<style>
+    .account-sidebar { position:relative; }
+    .account-sidebar .account-link { display:block; padding:6px 8px 6px 12px; position:relative; color:inherit; transition:color .12s ease; }
+    .account-sidebar .account-link::before { content:""; position:absolute; left:0; top:8px; bottom:8px; width:4px; background:transparent; border-radius:2px; transition:background .12s ease, transform .12s ease; transform:scaleY(0); transform-origin:center; }
+    .account-sidebar .account-link:hover::before { background:#5b7c99; transform:scaleY(1); }
+    .account-sidebar .account-link.active::before { background:#5b7c99; transform:scaleY(1); }
+    .account-sidebar .account-link.active { font-weight:700; color:#2c3e50; }/
+    .btn-account{transition:all .15s ease}
+    .btn-account:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(44,62,80,0.06)}
+
+    .tab-item { position:relative; display:inline-block; padding-bottom:8px; transition: color .12s ease; }
+    .tab-item::after { content:""; position:absolute; left:0; right:0; bottom:0; height:3px; background:transparent; transform:scaleX(0); transform-origin:left; transition: transform .14s ease, background .14s ease; border-radius:2px; }
+
+    .tab-item:not(.active):hover { color:#f26b21; }
+    .tab-item:not(.active):hover::after { background:#f26b21; transform:scaleX(1); }
+</style>

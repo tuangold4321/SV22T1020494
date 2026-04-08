@@ -1,0 +1,60 @@
+﻿@model int?
+@{
+    Layout = null;
+    var shippers = ViewBag.Shippers as List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>;
+}
+<form method="post" action="@Url.Action("Shipping", "Order", new { id = Model })" id="shippingForm">
+<div class="modal-header text-bg-info">
+    <strong class="modal-title">
+        Chọn người giao hàng
+    </strong>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+
+<div class="modal-body">
+        <div class="row">
+            <div class="col-12">
+                <label class="form-label">Người giao hàng</label>
+                <select class="form-select" name="shipperId" id="shipperSelect">
+                    @if (shippers != null)
+                    {
+                        foreach (var s in shippers)
+                        {
+                            <option value="@s.Value">@s.Text</option>
+                        }
+                    }
+                    else
+                    {
+                        <option value="0">-- Chọn người giao hàng --</option>
+                    }
+                </select>
+                <div id="shippingNotify" class="text-danger small mt-2" style="display:none;">Vui lòng chọn người giao hàng!</div>
+            </div>
+        </div>
+</div>
+
+<div class="modal-footer">
+    <button type="button" class="btn btn-primary" id="shippingSubmit"
+            onclick="(function(e){
+                var select = document.getElementById('shipperSelect');
+                var notify = document.getElementById('shippingNotify');
+                var val = select ? select.value : '0';
+                if (!val || val === '0'){
+                    if (notify) notify.style.display = 'block';
+                    return false;
+                }
+                if (notify) notify.style.display = 'none';
+                // submit the form
+                var form = document.getElementById('shippingForm');
+                if (form) form.submit();
+                return true;
+            })(event);">
+        <i class="bi bi-bicycle"></i> Giao hàng
+    </button>
+    <button type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal">
+        Đóng
+    </button>
+</div>
+</form>

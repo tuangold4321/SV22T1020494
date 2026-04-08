@@ -1,0 +1,20 @@
+﻿@model SV22T1020494.Models.Catalog.ProductAttribute
+@{
+    Layout = null;
+}
+<div class="modal-body text-center py-3">
+    <p class="mb-0">Bạn có muốn xoá thuộc tính này chứ?</p>
+    <div class="mt-3 text-start">
+        <strong>@Model.AttributeName</strong>
+        <div>@Model.AttributeValue</div>
+    </div>
+</div>
+<div class="modal-footer">
+    <form method="post" action="~/Product/DeleteAttribute" class="w-100 d-flex justify-content-end">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@ViewBag.ProductID" />
+        <input type="hidden" name="attributeId" value="@Model.AttributeID" />
+        <button type="submit" class="btn btn-danger me-2">Xoá</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Huỷ</button>
+    </form>
+</div>

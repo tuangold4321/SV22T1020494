@@ -1,0 +1,84 @@
+﻿@model SV22T1020494.Shop.Models.RegisterViewModel
+@{
+    ViewData["Title"] = "Register";
+}
+
+<div style="max-width:420px;margin:16px auto;background:white;padding:18px;border-radius:6px;border:1px solid #e0e0e0;position:relative;">
+    <h2 style="text-align:center;margin-bottom:18px;color:#2c3e50;">Đăng ký tài khoản</h2>
+
+    @{
+        var genericError = ViewData.ModelState[string.Empty]?.Errors.FirstOrDefault()?.ErrorMessage;
+        var registerSuccess = TempData["RegisterSuccess"] as string;
+    }
+
+    @if (!string.IsNullOrEmpty(genericError))
+    {
+        <div style="color:#e74c3c;margin-bottom:12px;font-weight:600;">@genericError</div>
+    }
+
+    @if (!string.IsNullOrEmpty(registerSuccess))
+    {
+        <div style="color:#1f6d3a;margin-bottom:12px;font-weight:700;">@registerSuccess</div>
+    }
+
+    <form method="post" asp-action="Register">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+            <div>
+                <label style="display:block;margin-bottom:6px;color:#2c3e50;">Họ và tên <span style="color:#e74c3c;font-weight:700;">*</span></label>
+                <input asp-for="CustomerName" class="form-control" style="width:100%;padding:8px;border:1px solid #e6ecf0;border-radius:4px;background:#fafafa;" />
+            </div>
+
+            <div>
+                <label style="display:block;margin-bottom:6px;color:#2c3e50;">Tên liên hệ</label>
+                <input asp-for="ContactName" class="form-control" style="width:100%;padding:8px;border:1px solid #e6ecf0;border-radius:4px;background:#fafafa;" />
+            </div>
+
+            <div>
+                <label style="display:block;margin-bottom:6px;color:#2c3e50;">Email <span style="color:#e74c3c;font-weight:700;">*</span></label>
+                <input asp-for="Email" type="email" class="form-control" style="width:100%;padding:8px;border:1px solid #e6ecf0;border-radius:4px;background:#fafafa;" />
+            </div>
+
+            <div>
+                <label style="display:block;margin-bottom:6px;color:#2c3e50;">Mật khẩu <span style="color:#e74c3c;font-weight:700;">*</span></label>
+                <input asp-for="Password" type="password" class="form-control" style="width:100%;padding:8px;border:1px solid #e6ecf0;border-radius:4px;background:#fafafa;" />
+            </div>
+
+            <div>
+                <label style="display:block;margin-bottom:6px;color:#2c3e50;">Điện thoại <span style="color:#e74c3c;font-weight:700;">*</span></label>
+                <input asp-for="Phone" class="form-control" style="width:100%;padding:8px;border:1px solid #e6ecf0;border-radius:4px;background:#fafafa;" />
+            </div>
+
+            <div>
+                <label style="display:block;margin-bottom:6px;color:#2c3e50;">Tỉnh/Thành <span style="color:#e74c3c;font-weight:700;">*</span></label>
+                <select asp-for="Province" class="form-control" style="width:100%;padding:8px;border:1px solid #e6ecf0;border-radius:4px;background:#fafafa;">
+                    <option value="">-- Chọn Tỉnh/Thành --</option>
+                    @{
+                        var provs = ViewBag.Provinces as IEnumerable<SV22T1020494.Models.DataDictionary.Province> ?? Enumerable.Empty<SV22T1020494.Models.DataDictionary.Province>();
+                        foreach (var p in provs)
+                        {
+                            <option value="@p.ProvinceName">@p.ProvinceName</option>
+                        }
+                    }
+                </select>
+            </div>
+
+
+            <div>
+                <label style="display:block;margin-bottom:6px;color:#2c3e50;">Địa chỉ</label>
+                <input asp-for="Address" class="form-control" style="width:100%;padding:8px;border:1px solid #e6ecf0;border-radius:4px;background:#fafafa;" />
+            </div>
+
+            <div>
+                <style>
+                    .btn.register{transition:all .15s ease; position:sticky; bottom:12px; display:block; z-index:5}
+                    .btn.register:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(44,62,80,0.06)}
+                </style>
+                <button type="submit" class="btn register" style="width:100%;padding:12px;background:#5b7c99;border:none;border-radius:4px;color:white;font-weight:600;">Đăng ký</button>
+            </div>
+
+            <div style="text-align:center;color:#5b7c99;">
+                <a href="/Account/Login" style="color:#5b7c99;text-decoration:none;">Đã có tài khoản? Đăng nhập</a>
+            </div>
+        </div>
+    </form>
+</div>

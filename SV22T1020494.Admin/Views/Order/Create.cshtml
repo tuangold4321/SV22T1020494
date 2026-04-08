@@ -1,0 +1,254 @@
+﻿@model SV22T1020494.Models.Catalog.ProductSearchInput
+@{
+    ViewBag.Title = "Lập đơn hàng";
+}
+
+<div class="row">
+    <div class="col-4">
+        <div class="card card-outline card-primary h-100">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-search"></i>
+                    Lựa chọn hàng cần bán
+                </h5>
+            </div>
+
+            <div class="card-body">
+                <form id="searchForm" method="get" class="mb-3">
+                    <div class="input-group">
+                        <input class="form-control"
+                               name="searchValue"
+                               placeholder="Nhập tên mặt hàng cần tìm" autofocus value="@Model?.SearchValue" />
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </form>
+
+                <div id="searchResults">
+                    @if (ViewBag.ProductPaged != null)
+                    {
+                        var paged = ViewBag.ProductPaged as SV22T1020494.Models.Common.PagedResult<SV22T1020494.Models.Catalog.Product>;
+                        @await Html.PartialAsync("SearchProduct", paged)
+                    }
+                </div>
+            </div>
+
+            <div class="card-footer">
+            </div>
+        </div>
+    </div>
+
+    <div class="col-8">
+        <div class="row">
+            <div class="col-12">
+                <div id="shoppingCart">
+                    @{
+                        var cart = ViewBag.ShoppingCart as List<SV22T1020494.Models.Sales.OrderDetailViewInfo>;
+                    }
+                    @await Html.PartialAsync("ShowCart", cart)
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card card-outline card-info">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-person"></i>
+                            Thông tin khách hàng & nơi giao hàng
+                        </h5>
+                    </div>
+
+                    <div class="card-body">
+                        <form method="post" id="createOrderForm">
+                            <div class="row mb-3">
+                                <label class="col-md-2 col-form-label">Khách hàng</label>
+                                <div class="col-md-10">
+                                    <select class="form-select" name="customerId">
+                                        @{
+                                            var customers = ViewBag.Customers as List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>;
+                                            if (customers != null)
+                                            {
+                                                foreach (var c in customers)
+                                                {
+                                                    <option value="@c.Value">@c.Text</option>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <option value="">-- Chọn khách hàng --</option>
+                                            }
+                                        }
+                                    </select>
+                                    <div id="errCustomer" class="text-danger small mt-1" style="display:none;">Vui lòng chọn khách hàng</div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <label class="col-md-2 col-form-label">Tỉnh/thành</label>
+                                <div class="col-md-10">
+                                    <select class="form-select" name="province">
+                                        @{
+                                            var provinces = ViewBag.Provinces as List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>;
+                                            if (provinces != null)
+                                            {
+                                                foreach (var p in provinces)
+                                                {
+                                                    <option value="@p.Value">@p.Text</option>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <option value="">-- Chọn Tỉnh/thành giao hàng --</option>
+                                            }
+                                        }
+                                    </select>
+                                    <div id="errProvince" class="text-danger small mt-1" style="display:none;">Vui lòng chọn Tỉnh/thành giao hàng</div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <label class="col-md-2 col-form-label">Địa chỉ</label>
+                                <div class="col-md-10">
+                                    <textarea class="form-control" name="address" id="shippingAddress" rows="3"></textarea>
+                                    <div id="errAddress" class="text-danger small mt-1" style="display:none;">Vui lòng nhập địa chỉ giao hàng</div>
+                                </div>
+                            </div>
+
+                            <div id="createNotify" class="text-danger small mb-2" style="display:none;"></div>
+
+                            <div class="text-end">
+                                <button type="submit" class="btn btn-primary" id="createOrderBtn">
+                                    <i class="bi bi-check-circle"></i>
+                                    Lập đơn hàng
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="ajaxEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content" id="ajaxEditModalContent">
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Hàm để attach event handlers cho các element .open-modal
+        window.attachModalHandlers = function () {
+            document.querySelectorAll(".open-modal").forEach(element => {
+                // Loại bỏ event listener cũ nếu có
+                element.removeEventListener("click", handleOpenModal);
+                // Thêm event listener mới
+                element.addEventListener("click", handleOpenModal);
+            });
+        };
+
+        // Hàm xử lý click trên .open-modal
+        function handleOpenModal(e) {
+            e.preventDefault();
+            openModal(e, this);
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Debounce helper
+            function debounce(fn, delay) {
+                var t;
+                return function () {
+                    var args = arguments;
+                    clearTimeout(t);
+                    t = setTimeout(function () { fn.apply(null, args); }, delay);
+                };
+            }
+
+            // Load search results
+            function loadSearchProducts(page) {
+                var searchValue = document.querySelector('#searchForm input[name="searchValue"]').value || '';
+                var url = '/Order/SearchProduct?searchValue=' + encodeURIComponent(searchValue) + '&page=' + page;
+
+                var searchResultsEl = document.getElementById('searchResults');
+                if (searchResultsEl) {
+                    searchResultsEl.innerHTML = '<div class="text-center py-4"><span>Đang tải dữ liệu...</span></div>';
+                }
+
+                fetch(url)
+                    .then(function (res) { return res.text(); })
+                    .then(function (html) {
+                        if (searchResultsEl) {
+                            searchResultsEl.innerHTML = html;
+                        }
+                    })
+                    .catch(function () {
+                        if (searchResultsEl) {
+                            searchResultsEl.innerHTML = '<div class="text-danger">Lỗi tải dữ liệu sản phẩm.</div>';
+                        }
+                    });
+            }
+
+            // Form search submit only (remove live search)
+            var searchForm = document.getElementById('searchForm');
+            if (searchForm) {
+                searchForm.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    loadSearchProducts(1);
+                });
+            }
+
+            // Create order form validation
+            var createForm = document.getElementById('createOrderForm');
+            if (createForm) {
+                createForm.addEventListener('submit', function (e) {
+                    var cust = createForm.querySelector('select[name="customerId"]').value;
+                    var prov = createForm.querySelector('select[name="province"]').value;
+                    var addr = createForm.querySelector('textarea[name="address"]').value.trim();
+
+                    var errCust = document.getElementById('errCustomer');
+                    var errProv = document.getElementById('errProvince');
+                    var errAddr = document.getElementById('errAddress');
+                    var notify = document.getElementById('createNotify');
+
+                    // hide errors initially
+                    if (errCust) errCust.style.display = 'none';
+                    if (errProv) errProv.style.display = 'none';
+                    if (errAddr) errAddr.style.display = 'none';
+                    if (notify) { notify.style.display = 'none'; notify.textContent = ''; }
+
+                    var hasError = false;
+                    var firstErrEl = null;
+
+                    if (!cust) {
+                        if (errCust) { errCust.style.display = 'block'; }
+                        hasError = true; firstErrEl = firstErrEl || (errCust || null);
+                    }
+
+                    if (!prov) {
+                        if (errProv) { errProv.style.display = 'block'; }
+                        hasError = true; firstErrEl = firstErrEl || (errProv || null);
+                    }
+
+                    if (!addr) {
+                        if (errAddr) { errAddr.style.display = 'block'; }
+                        hasError = true; firstErrEl = firstErrEl || (errAddr || null);
+                    }
+
+                    if (hasError) {
+                        e.preventDefault();
+                        // scroll to first error if possible
+                        try { firstErrEl && firstErrEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+                        return false;
+                    }
+                });
+            }
+
+            // Initial attach modal handlers
+            attachModalHandlers();
+        });
+    </script>
+}

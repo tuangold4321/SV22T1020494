@@ -1,0 +1,95 @@
+﻿@model SV22T1020494.Models.CustomerViewModel
+@using SV22T1020494.Admin
+@using SV22T1020494.BusinessLayers
+@{
+    // Keep view simple: controller provides ViewBag.Provinces (SelectList) and Model.IsLocked
+}
+@section PageToolBar {
+    <button type="submit" form="formEdit" class="btn btn-primary">
+        <i class="bi bi-save"></i>
+        Lưu dữ liệu
+    </button>    
+    <a href="~/Customer" class="btn btn-secondary ms-1">
+        <i class="bi bi-arrow-left"></i>
+        Quay lại
+    </a>
+}
+
+<div class="row justify-content-center">
+    <div class="col-12">
+        <div class="card card-outline" style="border-radius:8px;">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-people me-2"></i>
+                    Thông tin khách hàng
+                </h5>
+            </div>
+
+            <div class="card-body">
+                <form id="formEdit" method="post" action="~/Customer/SaveData">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="CustomerID" />
+
+                    <div class="row align-items-end mb-3">
+                        <div class="col-md-5 mb-3">
+                            <label class="form-label">Tên khách hàng</label>
+                            <input type="text" asp-for="CustomerName"
+                                   class="form-control rounded-3"
+                                   placeholder="" autofocus />
+                            <span asp-validation-for="CustomerName" class="text-danger"></span>
+                            <div class="form-text text-danger mt-2">Vui lòng nhập tên của khách hàng</div>
+                        </div>
+                        <div class="col-md-5 mb-3">
+                            <label class="form-label">Tên giao dịch</label>
+                            <input type="text" asp-for="ContactName"
+                                   class="form-control rounded-3"
+                                   placeholder="" />
+                        </div>
+                        <div class="col-md-2 mb-3 text-md-end">
+                            <label class="form-label d-block">Trạng thái</label>
+                            <div class="form-check form-switch mt-2 d-inline-block align-middle">
+                                <input class="form-check-input" asp-for="IsLocked"
+                                       type="checkbox"
+                                       id="IsLocked" />
+                            </div>
+                            <label class="form-check-label ms-2 align-middle" for="IsLocked">Đã bị khoá</label>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-5 mb-3">
+                            <label class="form-label">Điện thoại</label>
+                            <input type="tel" asp-for="Phone"
+                                   class="form-control rounded-3"
+                                   placeholder="" />
+                        </div>
+
+                        <div class="col-md-7 mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" asp-for="Email"
+                                   class="form-control rounded-3"
+                                   placeholder="" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                            <div class="form-text text-danger mt-2">Vui lòng cho biết email của khách hàng</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Địa chỉ</label>
+                        <textarea class="form-control rounded-3" asp-for="Address"
+                                  rows="4"
+                                  placeholder=""></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Tỉnh / Thành</label>
+                        <select class="form-select rounded-3" asp-for="Province" asp-items="@(ViewBag.Provinces as SelectList)">
+                        </select>
+                        <span asp-validation-for="Province" class="text-danger"></span>
+                        <div class="form-text text-danger mt-2">Vui lòng chọn tỉnh/thành</div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

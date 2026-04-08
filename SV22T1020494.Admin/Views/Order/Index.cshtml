@@ -1,0 +1,72 @@
+﻿@{
+    ViewBag.Title = "Quản lý Đơn hàng";
+
+    var qStatus = ViewContext.HttpContext.Request.Query["Status"].ToString();
+    var qDateFrom = ViewContext.HttpContext.Request.Query["dateFrom"].ToString();
+    var qDateTo = ViewContext.HttpContext.Request.Query["dateTo"].ToString();
+    var qSearchValue = ViewContext.HttpContext.Request.Query["searchValue"].ToString();
+}
+
+@section PageToolBar {
+    <a href="~/Order/Create" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-1"></i>
+        Lập đơn hàng mới
+    </a>
+}
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form id="formSearch"
+              method="get"
+              action="@Url.Action("Index", "Order")">
+
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <label class="form-label">Trạng thái đơn hàng</label>
+                    <select name="Status" class="form-select">
+                        <option value="" selected="@(string.IsNullOrEmpty(qStatus) ? "selected" : null)">-- Tất cả --</option>
+                        <option value="1" selected="@(qStatus == "1" ? "selected" : null)">Chờ duyệt</option>
+                        <option value="2" selected="@(qStatus == "2" ? "selected" : null)">Đã duyệt</option>
+                        <option value="3" selected="@(qStatus == "3" ? "selected" : null)">Đang giao</option>
+                        <option value="4" selected="@(qStatus == "4" ? "selected" : null)">Hoàn tất</option>
+                        <option value="-1" selected="@(qStatus == "-1" ? "selected" : null)">Bị hủy</option>
+                        <option value="-2" selected="@(qStatus == "-2" ? "selected" : null)">Bị từ chối</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Thời gian lập đơn hàng</label>
+                    <div class="input-group">
+                        <input type="text" name="dateFrom" value="@qDateFrom" class="form-control date-picker" placeholder="Từ ngày..." />
+                        <span class="input-group-text">-</span>
+                        <input type="text" name="dateTo" value="@qDateTo" class="form-control date-picker" placeholder="...đến ngày" />
+                    </div>
+                </div>
+
+                <div class="col-md-5">
+                    <label class="form-label">Tên khách hàng</label>
+                    <div class="input-group">
+                        <input type="text"
+                               name="searchValue"
+                               value="@qSearchValue"
+                               class="form-control"
+                               placeholder="Tên khách hàng..." autofocus />
+
+                        <button type="submit" class="btn btn-info d-flex align-items-center">
+                            <i class="bi bi-search me-1"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <input type="hidden" name="page" value="1" />
+            <input type="hidden" name="pageSize" value="20" />
+        </form>
+    </div>
+</div>
+
+<div id="searchResult">   
+    @if (ViewBag.SearchResult != null)
+    {
+        @await Html.PartialAsync("Search", (object)ViewBag.SearchResult)
+    }
+</div>
